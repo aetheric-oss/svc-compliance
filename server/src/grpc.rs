@@ -1,40 +1,101 @@
+/// FlightPlanRequest
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FlightPlanRequest {
+    /// Flight Plan Id
+    #[prost(string, tag = "1")]
+    pub flight_plan_id: ::prost::alloc::string::String,
+    /// JSON data of the flight plan
+    #[prost(string, tag = "2")]
+    pub data: ::prost::alloc::string::String,
+}
+/// FlightPlanResponse
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FlightPlanResponse {
+    /// Flight Plan Id
+    #[prost(string, tag = "1")]
+    pub flight_plan_id: ::prost::alloc::string::String,
+    /// JSON data of the flight plan
+    #[prost(bool, tag = "2")]
+    pub submitted: bool,
+    /// Optional error or warning message
+    #[prost(string, optional, tag = "3")]
+    pub result: ::core::option::Option<::prost::alloc::string::String>,
+}
+/// FlightReleaseRequest
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FlightReleaseRequest {
+    /// Flight Plan Id
+    #[prost(string, tag = "1")]
+    pub flight_plan_id: ::prost::alloc::string::String,
+    /// JSON data of the flight plan
+    #[prost(string, tag = "2")]
+    pub data: ::prost::alloc::string::String,
+}
+/// FlightReleaseResponse
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FlightReleaseResponse {
+    /// Flight Plan Id
+    #[prost(string, tag = "1")]
+    pub flight_plan_id: ::prost::alloc::string::String,
+    /// JSON data of the flight plan
+    #[prost(bool, tag = "2")]
+    pub released: bool,
+    /// Optional error or warning message
+    #[prost(string, optional, tag = "3")]
+    pub result: ::core::option::Option<::prost::alloc::string::String>,
+}
 /// Are you Ready?
 ///
 /// No arguments
 #[derive(Eq, Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct QueryIsReady {
-}
+pub struct QueryIsReady {}
 /// I'm Ready
 #[derive(Eq, Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadyResponse {
     /// True if ready
-    #[prost(bool, tag="1")]
+    #[prost(bool, tag = "1")]
     pub ready: bool,
 }
 /// Generated server implementations.
-pub mod template_rust_rpc_server {
+pub mod compliance_rpc_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    ///Generated trait containing gRPC methods that should be implemented for use with TemplateRustRpcServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with ComplianceRpcServer.
     #[async_trait]
-    pub trait TemplateRustRpc: Send + Sync + 'static {
-        /// Common Interfaces
+    pub trait ComplianceRpc: Send + Sync + 'static {
+        /// is ready heartbeat
         async fn is_ready(
             &self,
             request: tonic::Request<super::QueryIsReady>,
         ) -> Result<tonic::Response<super::ReadyResponse>, tonic::Status>;
+        /// submit flight plan
+        async fn submit_flight_plan(
+            &self,
+            request: tonic::Request<super::FlightPlanRequest>,
+        ) -> Result<tonic::Response<super::FlightPlanResponse>, tonic::Status>;
+        /// release flight plan
+        async fn request_flight_release(
+            &self,
+            request: tonic::Request<super::FlightReleaseRequest>,
+        ) -> Result<tonic::Response<super::FlightReleaseResponse>, tonic::Status>;
     }
-    /// Heartbeat
+    /// ComplianceRpc
     #[derive(Debug)]
-    pub struct TemplateRustRpcServer<T: TemplateRustRpc> {
+    pub struct ComplianceRpcServer<T: ComplianceRpc> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
     }
     struct _Inner<T>(Arc<T>);
-    impl<T: TemplateRustRpc> TemplateRustRpcServer<T> {
+    impl<T: ComplianceRpc> ComplianceRpcServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -68,9 +129,9 @@ pub mod template_rust_rpc_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for TemplateRustRpcServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for ComplianceRpcServer<T>
     where
-        T: TemplateRustRpc,
+        T: ComplianceRpc,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
@@ -86,11 +147,11 @@ pub mod template_rust_rpc_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/grpc.TemplateRustRpc/isReady" => {
+                "/grpc.ComplianceRpc/isReady" => {
                     #[allow(non_camel_case_types)]
-                    struct isReadySvc<T: TemplateRustRpc>(pub Arc<T>);
+                    struct isReadySvc<T: ComplianceRpc>(pub Arc<T>);
                     impl<
-                        T: TemplateRustRpc,
+                        T: ComplianceRpc,
                     > tonic::server::UnaryService<super::QueryIsReady>
                     for isReadySvc<T> {
                         type Response = super::ReadyResponse;
@@ -124,6 +185,86 @@ pub mod template_rust_rpc_server {
                     };
                     Box::pin(fut)
                 }
+                "/grpc.ComplianceRpc/submitFlightPlan" => {
+                    #[allow(non_camel_case_types)]
+                    struct submitFlightPlanSvc<T: ComplianceRpc>(pub Arc<T>);
+                    impl<
+                        T: ComplianceRpc,
+                    > tonic::server::UnaryService<super::FlightPlanRequest>
+                    for submitFlightPlanSvc<T> {
+                        type Response = super::FlightPlanResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::FlightPlanRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner).submit_flight_plan(request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = submitFlightPlanSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/grpc.ComplianceRpc/requestFlightRelease" => {
+                    #[allow(non_camel_case_types)]
+                    struct requestFlightReleaseSvc<T: ComplianceRpc>(pub Arc<T>);
+                    impl<
+                        T: ComplianceRpc,
+                    > tonic::server::UnaryService<super::FlightReleaseRequest>
+                    for requestFlightReleaseSvc<T> {
+                        type Response = super::FlightReleaseResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::FlightReleaseRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner).request_flight_release(request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = requestFlightReleaseSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 _ => {
                     Box::pin(async move {
                         Ok(
@@ -139,7 +280,7 @@ pub mod template_rust_rpc_server {
             }
         }
     }
-    impl<T: TemplateRustRpc> Clone for TemplateRustRpcServer<T> {
+    impl<T: ComplianceRpc> Clone for ComplianceRpcServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -149,7 +290,7 @@ pub mod template_rust_rpc_server {
             }
         }
     }
-    impl<T: TemplateRustRpc> Clone for _Inner<T> {
+    impl<T: ComplianceRpc> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(self.0.clone())
         }
@@ -159,7 +300,7 @@ pub mod template_rust_rpc_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: TemplateRustRpc> tonic::server::NamedService for TemplateRustRpcServer<T> {
-        const NAME: &'static str = "grpc.TemplateRustRpc";
+    impl<T: ComplianceRpc> tonic::server::NamedService for ComplianceRpcServer<T> {
+        const NAME: &'static str = "grpc.ComplianceRpc";
     }
 }
