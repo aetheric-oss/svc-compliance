@@ -1,12 +1,12 @@
 [package]
-description = "Arrow template service GRPC server"
+description = "Arrow compliance service GRPC server"
 edition     = "2021"                                                       # Allowed values are 2015, 2018, 2021
 homepage    = "https://www.arrowair.com/docs/documentation/services/intro"
 keywords    = ["vtol", "server", "template"]                               # max 5
 license     = "BUSL-1.1"
-name        = "svc-template-rust"
-repository  = "https://github.com/Arrow-air/svc-template-rust"
-version     = "0.2.0-develop.2"
+name        = "svc-compliance"
+repository  = "https://github.com/Arrow-air/svc-compliance"
+version     = "0.0.1"
 
 categories = [
   "aerospace::drones",
@@ -19,6 +19,7 @@ vendored-openssl = ['openssl/vendored']
 [dependencies]
 cargo-husky  = "1"
 chrono       = { version = "0.4", features = ["serde"] }
+dotenv       = "0.15.0"
 hyper        = "0.14"
 log          = "0.4"
 openssl      = "0.10"

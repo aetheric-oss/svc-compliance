@@ -1,0 +1,62 @@
+// Test Documentation
+syntax = "proto3";
+package grpc;
+import "google/protobuf/timestamp.proto";
+
+// ComplianceRpc
+service ComplianceRpc {
+    // is ready heartbeat
+    rpc isReady (QueryIsReady) returns (ReadyResponse);
+    // submit flight plan
+    rpc submitFlightPlan (FlightPlanRequest) returns (FlightPlanResponse);
+    // release flight plan
+    rpc requestFlightRelease (FlightReleaseRequest) returns (FlightReleaseResponse);
+}
+
+//FlightPlanRequest
+message FlightPlanRequest {
+    // Flight Plan Id
+    string flight_plan_id = 1;
+    // JSON data of the flight plan
+    string data = 2;
+}
+
+//FlightPlanResponse
+message FlightPlanResponse {
+    // Flight Plan Id
+    string flight_plan_id = 1;
+    // JSON data of the flight plan
+    bool submitted = 2;
+    // Optional error or warning message
+    optional string result = 3;
+}
+
+//FlightReleaseRequest
+message FlightReleaseRequest {
+    // Flight Plan Id
+    string flight_plan_id = 1;
+    // JSON data of the flight plan
+    string data = 2;
+}
+
+//FlightReleaseResponse
+message FlightReleaseResponse {
+    // Flight Plan Id
+    string flight_plan_id = 1;
+    // JSON data of the flight plan
+    bool released = 2;
+    // Optional error or warning message
+    optional string result = 3;
+}
+
+// Are you Ready?
+message QueryIsReady {
+    // No arguments
+}
+
+// I'm Ready
+message ReadyResponse {
+
+    // True if ready
+    bool ready = 1;
+}
