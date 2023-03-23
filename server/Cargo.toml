@@ -19,7 +19,7 @@ vendored-openssl = ['openssl/vendored']
 [dependencies]
 cargo-husky  = "1"
 chrono       = { version = "0.4", features = ["serde"] }
-dotenv       = "0.15.0"
+dotenv       = "0.15"
 hyper        = "0.14"
 log          = "0.4"
 openssl      = "0.10"

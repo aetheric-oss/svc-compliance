@@ -2,7 +2,8 @@
 
 # svc-compliance Service
 
-![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Arrow-air/svc-template?include_prereleases)
+![GitHub stable release (latest by date)](https://img.shields.io/github/v/release/Arrow-air/svc-compliance?sort=semver&color=green)
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Arrow-air/svc-compliance?include_prereleases)
 ![Sanity Checks](https://github.com/arrow-air/svc-compliance/actions/workflows/sanity_checks.yml/badge.svg?branch=main)
 ![Rust Checks](https://github.com/arrow-air/svc-compliance/actions/workflows/rust_ci.yml/badge.svg?branch=main)
 ![Python Flake8](https://github.com/arrow-air/svc-compliance/actions/workflows/python_ci.yml/badge.svg?branch=main)
@@ -10,8 +11,6 @@
 Discord](https://img.shields.io/discord/853833144037277726?style=plastic)
 
 ## :telescope: Overview
-
-FIXME
 
 Directory:
 - `server/src/`: Source Code and Unit Tests of the server
@@ -97,6 +96,7 @@ The following documents are relevant to this service:
 - [Concept of Operations](./docs/conops.md)
 - [Software Design Document](./docs/sdd.md)
 - [Interface Control Document (ICD)](./docs/icd.md)
+- [Requirements](https://nocodb.arrowair.com/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b)
 
 ## :busts_in_silhouette: Arrow DAO
 Learn more about us:

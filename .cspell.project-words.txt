@@ -27,3 +27,4 @@ commitlintrc
 dotenv
 protobuf
 tftpl
+stuckee

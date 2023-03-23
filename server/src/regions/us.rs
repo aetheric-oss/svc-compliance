@@ -4,6 +4,7 @@ use crate::svc_compliance::{
 };
 use tonic::{Request, Response, Status};
 
+/// Processes for submission to the US authorities
 pub struct USImpl {}
 impl RegionInterface for USImpl {
     fn submit_flight_plan(
