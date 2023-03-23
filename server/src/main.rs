@@ -37,7 +37,7 @@ use svc_compliance::compliance_rpc_server::{ComplianceRpc, ComplianceRpcServer};
 use svc_compliance::{QueryIsReady, ReadyResponse};
 use tonic::{transport::Server, Request, Response, Status};
 
-use log::error;
+use log::{debug, error};
 
 ///Implementation of gRPC endpoints
 #[derive(Debug, Default, Copy, Clone)]
@@ -50,6 +50,7 @@ impl ComplianceRpc for ComplianceImpl {
         &self,
         _request: Request<QueryIsReady>,
     ) -> Result<Response<ReadyResponse>, Status> {
+        debug!("(grpc is_ready) entry.");
         let response = ReadyResponse { ready: true };
         Ok(Response::new(response))
     }
@@ -58,6 +59,8 @@ impl ComplianceRpc for ComplianceImpl {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
+        debug!("(grpc submit_flight_plan) entry.");
+
         match get_region_impl() {
             Ok(region) => region.submit_flight_plan(request),
             Err(_) => Err(Status::internal("Failed to submit flight plan.")),
@@ -68,6 +71,8 @@ impl ComplianceRpc for ComplianceImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
+        debug!("(grpc request_flight_release) entry.");
+
         match get_region_impl() {
             Ok(region) => region.request_flight_release(request),
             Err(_) => Err(Status::internal("Failed to request flight release.")),
@@ -77,6 +82,8 @@ impl ComplianceRpc for ComplianceImpl {
 
 ///Returns region implementation based on REGION_CODE environment variable
 fn get_region_impl() -> Result<Box<dyn RegionInterface>, ()> {
+    debug!("(get_region_impl) entry.");
+
     let Ok(region) = std::env::var("REGION_CODE") else {
         error!("REGION_CODE environment variable is not set");
         return Err(())

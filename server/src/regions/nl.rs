@@ -2,6 +2,7 @@ use crate::region_interface::RegionInterface;
 use crate::svc_compliance::{
     FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
 };
+use log::debug;
 use tonic::{Request, Response, Status};
 
 /// Processes for submission to the Dutch (Netherlands) authorities
@@ -9,15 +10,29 @@ pub struct NLImpl {}
 impl RegionInterface for NLImpl {
     fn submit_flight_plan(
         &self,
-        _request: Request<FlightPlanRequest>,
+        request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        todo!()
+        debug!("(NLImpl submit_flight_plan) entry.");
+        // TODO R3 implement
+        let flight_plan_id = request.into_inner().flight_plan_id;
+        Ok(Response::new(FlightPlanResponse {
+            flight_plan_id,
+            submitted: true,
+            result: None,
+        }))
     }
 
     fn request_flight_release(
         &self,
-        _request: Request<FlightReleaseRequest>,
+        request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        todo!()
+        debug!("(NLImpl request_flight_release) entry.");
+        // TODO R3 implement
+        let flight_plan_id = request.into_inner().flight_plan_id;
+        Ok(Response::new(FlightReleaseResponse {
+            flight_plan_id,
+            released: true,
+            result: None,
+        }))
     }
 }
