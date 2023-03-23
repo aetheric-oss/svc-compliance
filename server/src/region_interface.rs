@@ -3,6 +3,7 @@ use crate::svc_compliance::{
 };
 use tonic::{Request, Response, Status};
 
+/// Interface to regional authorities
 pub trait RegionInterface {
     fn submit_flight_plan(
         &self,

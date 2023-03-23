@@ -4,8 +4,9 @@ use crate::svc_compliance::{
 };
 use tonic::{Request, Response, Status};
 
-pub struct NEImpl {}
-impl RegionInterface for NEImpl {
+/// Processes for submission to the Dutch (Netherlands) authorities
+pub struct NLImpl {}
+impl RegionInterface for NLImpl {
     fn submit_flight_plan(
         &self,
         _request: Request<FlightPlanRequest>,
