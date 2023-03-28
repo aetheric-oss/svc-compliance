@@ -4,7 +4,7 @@ use crate::svc_compliance::{
 };
 use tonic::{Request, Response, Status};
 
-use log::debug;
+use log::info;
 
 /// Processes for submission to the US authorities
 pub struct USImpl {}
@@ -13,7 +13,7 @@ impl RegionInterface for USImpl {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        debug!("(USImpl submit_flight_plan) entry.");
+        info!("(USImpl submit_flight_plan) entry.");
         // TODO R3 implement
         let flight_plan_id = request.into_inner().flight_plan_id;
         Ok(Response::new(FlightPlanResponse {
@@ -27,7 +27,7 @@ impl RegionInterface for USImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        debug!("(USImpl request_flight_release) entry.");
+        info!("(USImpl request_flight_release) entry.");
         // TODO R3 implement
         let flight_plan_id = request.into_inner().flight_plan_id;
         Ok(Response::new(FlightReleaseResponse {

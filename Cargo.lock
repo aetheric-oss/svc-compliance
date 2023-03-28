@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "svc-compliance"
-version = "0.0.1"
+version = "0.0.1-develop.1"
 dependencies = [
  "cargo-husky",
  "chrono",
@@ -1137,7 +1137,7 @@ dependencies = [
 
 [[package]]
 name = "svc-compliance-client-grpc"
-version = "0.0.1"
+version = "0.0.1-develop.1"
 dependencies = [
  "prost",
  "prost-types",

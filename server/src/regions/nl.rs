@@ -2,7 +2,7 @@ use crate::region_interface::RegionInterface;
 use crate::svc_compliance::{
     FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
 };
-use log::debug;
+use log::info;
 use tonic::{Request, Response, Status};
 
 /// Processes for submission to the Dutch (Netherlands) authorities
@@ -12,7 +12,7 @@ impl RegionInterface for NLImpl {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        debug!("(NLImpl submit_flight_plan) entry.");
+        info!("(NLImpl submit_flight_plan) entry.");
         // TODO R3 implement
         let flight_plan_id = request.into_inner().flight_plan_id;
         Ok(Response::new(FlightPlanResponse {
@@ -26,7 +26,7 @@ impl RegionInterface for NLImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        debug!("(NLImpl request_flight_release) entry.");
+        info!("(NLImpl request_flight_release) entry.");
         // TODO R3 implement
         let flight_plan_id = request.into_inner().flight_plan_id;
         Ok(Response::new(FlightReleaseResponse {

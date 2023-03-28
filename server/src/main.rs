@@ -1,23 +1,4 @@
-//! <center>
-//! <img src="https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png" style="height:250px" />
-//! </center>
-//! <div align="center">
-//!     <a href="https://github.com/Arrow-air/svc-compliance/releases">
-//!         <img src="https://img.shields.io/github/v/release/Arrow-air/svc-compliance?sort=semver&color=green" alt="GitHub stable release (latest by date)">
-//!     </a>
-//!     <a href="https://github.com/Arrow-air/svc-compliance/releases">
-//!         <img src="https://img.shields.io/github/v/release/Arrow-air/svc-compliance?include_prereleases" alt="GitHub release (latest by date including pre-releases)">
-//!     </a>
-//!     <a href="https://github.com/Arrow-air/svc-compliance/tree/main">
-//!         <img src="https://github.com/arrow-air/svc-compliance/actions/workflows/rust_ci.yml/badge.svg?branch=main" alt="Rust Checks">
-//!     </a>
-//!     <a href="https://discord.com/invite/arrow">
-//!         <img src="https://img.shields.io/discord/853833144037277726?style=plastic" alt="Arrow DAO Discord">
-//!     </a>
-//!     <br><br>
-//! </div>
-//!
-//! This service is responsible for all communication with regional aviation authorities.
+//! #![doc = include_str!("../README.md")]
 
 mod region_interface;
 mod regions;
@@ -37,7 +18,7 @@ use svc_compliance::compliance_rpc_server::{ComplianceRpc, ComplianceRpcServer};
 use svc_compliance::{QueryIsReady, ReadyResponse};
 use tonic::{transport::Server, Request, Response, Status};
 
-use log::{debug, error};
+use log::{error, info};
 
 ///Implementation of gRPC endpoints
 #[derive(Debug, Default, Copy, Clone)]
@@ -50,7 +31,7 @@ impl ComplianceRpc for ComplianceImpl {
         &self,
         _request: Request<QueryIsReady>,
     ) -> Result<Response<ReadyResponse>, Status> {
-        debug!("(grpc is_ready) entry.");
+        info!("(grpc is_ready) entry.");
         let response = ReadyResponse { ready: true };
         Ok(Response::new(response))
     }
@@ -59,7 +40,7 @@ impl ComplianceRpc for ComplianceImpl {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        debug!("(grpc submit_flight_plan) entry.");
+        info!("(grpc submit_flight_plan) entry.");
 
         match get_region_impl() {
             Ok(region) => region.submit_flight_plan(request),
@@ -71,7 +52,7 @@ impl ComplianceRpc for ComplianceImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        debug!("(grpc request_flight_release) entry.");
+        info!("(grpc request_flight_release) entry.");
 
         match get_region_impl() {
             Ok(region) => region.request_flight_release(request),
@@ -82,10 +63,10 @@ impl ComplianceRpc for ComplianceImpl {
 
 ///Returns region implementation based on REGION_CODE environment variable
 fn get_region_impl() -> Result<Box<dyn RegionInterface>, ()> {
-    debug!("(get_region_impl) entry.");
+    info!("(get_region_impl) entry.");
 
     let Ok(region) = std::env::var("REGION_CODE") else {
-        error!("REGION_CODE environment variable is not set");
+        error!("REGION_CODE environment variable is not set.");
         return Err(())
     };
 
@@ -93,7 +74,7 @@ fn get_region_impl() -> Result<Box<dyn RegionInterface>, ()> {
         "us" => Ok(Box::new(regions::us::USImpl {})),
         "nl" => Ok(Box::new(regions::nl::NLImpl {})),
         _ => {
-            error!("Unknown region: {}", region);
+            error!("Unknown region: {}.", region);
             Err(())
         }
     }
@@ -108,7 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //initialize logger
     let log_cfg: &str = "log4rs.yaml";
     if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
-        println!("(logger) could not parse {}. {}", log_cfg, e);
+        error!("(logger) could not parse {}. {}", log_cfg, e);
         panic!();
     }
 
@@ -132,13 +113,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await;
 
     //start server
-    println!("Starting gRPC server at: {}", full_grpc_addr);
+    info!("Starting gRPC server at: {}", full_grpc_addr);
     Server::builder()
         .add_service(health_service)
         .add_service(ComplianceRpcServer::new(imp))
         .serve(full_grpc_addr)
         .await?;
-    println!("gRPC server running at: {}", full_grpc_addr);
+    info!("gRPC server running at: {}", full_grpc_addr);
 
     Ok(())
 }
