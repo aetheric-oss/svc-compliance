@@ -7,7 +7,7 @@ keywords.workspace     = true
 license-file.workspace = true
 name                   = "svc-compliance-client-grpc"
 repository.workspace   = true
-version                = "0.0.1-develop.1"
+version                = "0.1.0"
 
 [dependencies]
 prost       = "0.11"
