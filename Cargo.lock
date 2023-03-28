@@ -258,6 +258,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c877555693c14d2f84191cfd3ad8582790fc52b5e2274b40b59cf5f5cea25c7"
 
 [[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1107,11 +1113,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "svc-template-rust"
-version = "0.2.0-develop.2"
+name = "svc-compliance"
+version = "0.0.1-develop.1"
 dependencies = [
  "cargo-husky",
  "chrono",
+ "dotenv",
  "hyper",
  "log",
  "log4rs",
@@ -1129,8 +1136,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "svc-template-rust-client-grpc"
-version = "0.2.0-develop.2"
+name = "svc-compliance-client-grpc"
+version = "0.0.1-develop.1"
 dependencies = [
  "prost",
  "prost-types",
