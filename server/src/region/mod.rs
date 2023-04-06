@@ -1,4 +1,9 @@
-use crate::svc_compliance::{
+#[macro_use]
+pub mod macros;
+pub mod nl;
+pub mod us;
+
+use crate::grpc::server::grpc_server::{
     FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
 };
 use tonic::{Request, Response, Status};
@@ -9,6 +14,7 @@ pub trait RegionInterface {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status>;
+
     fn request_flight_release(
         &self,
         request: Request<FlightReleaseRequest>,
