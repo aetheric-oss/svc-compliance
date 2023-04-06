@@ -36,7 +36,7 @@ This microservice implements no additional REST endpoints beyond the common REST
 
 ### Files
 
-These interfaces are defined in a protocol buffer file, [`grpc.proto`](../proto/svc-compliance-grpc.proto).
+These interfaces are defined in a protocol buffer file, [`grpc.proto`](../proto/grpc.proto).
 
 ### Integrated Authentication & Encryption
 
