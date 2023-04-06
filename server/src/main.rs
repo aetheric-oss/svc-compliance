@@ -1,125 +1,33 @@
 //! #![doc = include_str!("../README.md")]
 
-mod region_interface;
-mod regions;
+mod config;
+mod grpc;
+mod region;
 
-///module svc_storage generated from svc-storage.proto
-pub mod svc_compliance {
-    #![allow(unused_qualifications, missing_docs)]
-    include!("grpc.rs");
-}
-
-use crate::region_interface::RegionInterface;
-use crate::svc_compliance::{
-    FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
-};
 use dotenv::dotenv;
-use svc_compliance::compliance_rpc_server::{ComplianceRpc, ComplianceRpcServer};
-use svc_compliance::{QueryIsReady, ReadyResponse};
-use tonic::{transport::Server, Request, Response, Status};
-
 use log::{error, info};
-
-///Implementation of gRPC endpoints
-#[derive(Debug, Default, Copy, Clone)]
-pub struct ComplianceImpl {}
-
-#[tonic::async_trait]
-impl ComplianceRpc for ComplianceImpl {
-    /// Returns ready:true when service is available
-    async fn is_ready(
-        &self,
-        _request: Request<QueryIsReady>,
-    ) -> Result<Response<ReadyResponse>, Status> {
-        info!("(grpc is_ready) entry.");
-        let response = ReadyResponse { ready: true };
-        Ok(Response::new(response))
-    }
-
-    async fn submit_flight_plan(
-        &self,
-        request: Request<FlightPlanRequest>,
-    ) -> Result<Response<FlightPlanResponse>, Status> {
-        info!("(grpc submit_flight_plan) entry.");
-
-        match get_region_impl() {
-            Ok(region) => region.submit_flight_plan(request),
-            Err(_) => Err(Status::internal("Failed to submit flight plan.")),
-        }
-    }
-
-    async fn request_flight_release(
-        &self,
-        request: Request<FlightReleaseRequest>,
-    ) -> Result<Response<FlightReleaseResponse>, Status> {
-        info!("(grpc request_flight_release) entry.");
-
-        match get_region_impl() {
-            Ok(region) => region.request_flight_release(request),
-            Err(_) => Err(Status::internal("Failed to request flight release.")),
-        }
-    }
-}
-
-///Returns region implementation based on REGION_CODE environment variable
-fn get_region_impl() -> Result<Box<dyn RegionInterface>, ()> {
-    info!("(get_region_impl) entry.");
-
-    let Ok(region) = std::env::var("REGION_CODE") else {
-        error!("REGION_CODE environment variable is not set.");
-        return Err(())
-    };
-
-    match region.as_str() {
-        "us" => Ok(Box::new(regions::us::USImpl {})),
-        "nl" => Ok(Box::new(regions::nl::NLImpl {})),
-        _ => {
-            error!("Unknown region: {}.", region);
-            Err(())
-        }
-    }
-}
 
 ///Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    info!("(svc-compliance) server startup.");
+
     //initialize dotenv library which reads .env file
     dotenv().ok();
 
-    //initialize logger
+    // initialize config from .env file
+    let config = config::Config::from_env().unwrap_or_default();
+
+    // initialize logger
     let log_cfg: &str = "log4rs.yaml";
     if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
         error!("(logger) could not parse {}. {}", log_cfg, e);
         panic!();
     }
 
-    // check region implementation and panic if region code is unknown
-    if get_region_impl().is_err() {
-        panic!();
-    }
+    // start gRPC server
+    let _ = tokio::spawn(grpc::server::server(config)).await;
 
-    // GRPC Server
-    let grpc_port = std::env::var("DOCKER_PORT_GRPC")
-        .unwrap_or_else(|_| "50051".to_string())
-        .parse::<u16>()
-        .unwrap_or(50051);
-
-    let full_grpc_addr = format!("[::]:{}", grpc_port).parse()?;
-
-    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
-    let imp = ComplianceImpl::default();
-    health_reporter
-        .set_serving::<ComplianceRpcServer<ComplianceImpl>>()
-        .await;
-
-    //start server
-    info!("Starting gRPC server at: {}", full_grpc_addr);
-    Server::builder()
-        .add_service(health_service)
-        .add_service(ComplianceRpcServer::new(imp))
-        .serve(full_grpc_addr)
-        .await?;
-    info!("gRPC server running at: {}", full_grpc_addr);
-
+    info!("(svc-compliance) server shutdown.");
     Ok(())
 }
