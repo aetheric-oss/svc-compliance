@@ -13,8 +13,10 @@ version                = "0.1.0"
 vendored-openssl = ['openssl/vendored']
 
 [dependencies]
+anyhow       = "1.0"
 cargo-husky  = "1"
 chrono       = { version = "0.4", features = ["serde"] }
+config       = "0.13"
 dotenv       = "0.15"
 hyper        = "0.14"
 log          = "0.4"
