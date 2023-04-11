@@ -1,4 +1,4 @@
-//! #![doc = include_str!("../README.md")]
+#![doc = include_str!("../README.md")]
 
 mod config;
 mod grpc;
@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::Config::from_env().unwrap_or_default();
 
     // initialize logger
-    let log_cfg: &str = "log4rs.yaml";
+    let log_cfg = config.log_config.as_str();
     if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
         error!("(logger) could not parse {}. {}", log_cfg, e);
         panic!();

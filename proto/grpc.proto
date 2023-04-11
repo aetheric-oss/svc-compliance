@@ -13,6 +13,8 @@ service RpcService {
     rpc requestFlightRelease (FlightReleaseRequest) returns (FlightReleaseResponse);
     // request temporary flight restrictions
     // rpc requestTfr(TfrRequest) returns (TfrResponse);
+    // request waypoints
+    rpc requestWaypoints (WaypointsRequest) returns (WaypointsResponse);
 }
 
 //FlightPlanRequest
@@ -33,7 +35,7 @@ message FlightPlanResponse {
     optional string result = 3;
 }
 
-//FlightReleaseRequest
+// FlightReleaseRequest
 message FlightReleaseRequest {
     // Flight Plan Id
     string flight_plan_id = 1;
@@ -41,7 +43,7 @@ message FlightReleaseRequest {
     string data = 2;
 }
 
-//FlightReleaseResponse
+// FlightReleaseResponse
 message FlightReleaseResponse {
     // Flight Plan Id
     string flight_plan_id = 1;
@@ -49,6 +51,41 @@ message FlightReleaseResponse {
     bool released = 2;
     // Optional error or warning message
     optional string result = 3;
+}
+
+// Waypoint
+// See example: https://opennav.com/waypoint/NL
+message Waypoint {
+    // Label
+    string identifier = 1;
+    // Latitude
+    double latitude = 2;
+    // Longitude
+    double longitude = 3;
+}
+
+// CoordinateFilter
+message CoordinateFilter {
+    // Minimum Latitude
+    double latitude_min = 1;
+    // Maximum Latitude
+    double latitude_max = 2;
+    // Minimum Longitude
+    double longitude_min = 3;
+    // Maximum Longitude
+    double longitude_max = 4;
+}
+
+// WaypointsRequest Body
+message WaypointsRequest {
+    // Coordinates by which to filter waypoints
+    CoordinateFilter filter = 1;
+}
+
+// WaypointsResponse Body
+message WaypointsResponse {
+    // Waypoints
+    repeated Waypoint waypoints = 1;
 }
 
 // Are you Ready?
