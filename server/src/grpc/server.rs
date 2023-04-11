@@ -7,7 +7,7 @@ pub mod grpc_server {
 use grpc_server::{
     rpc_service_server::{RpcService, RpcServiceServer},
     FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
-    ReadyRequest, ReadyResponse,
+    ReadyRequest, ReadyResponse, WaypointsRequest, WaypointsResponse,
 };
 
 use svc_compliance::shutdown_signal;
@@ -47,6 +47,14 @@ impl RpcService for ServiceImpl {
     ) -> Result<Response<FlightReleaseResponse>, Status> {
         grpc_info!("(grpc request_flight_release) entry.");
         self.region.request_flight_release(request)
+    }
+
+    async fn request_waypoints(
+        &self,
+        request: Request<WaypointsRequest>,
+    ) -> Result<Response<WaypointsResponse>, Status> {
+        grpc_info!("(grpc request_waypoints) entry.");
+        self.region.request_waypoints(request)
     }
 }
 
