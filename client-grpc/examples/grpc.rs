@@ -1,8 +1,12 @@
 //! gRPC client implementation
 
 use std::env;
+
 #[allow(unused_qualifications, missing_docs)]
-use svc_compliance_client_grpc::client::{rpc_service_client::RpcServiceClient, ReadyRequest};
+use svc_compliance_client_grpc::client::{
+    rpc_service_client::RpcServiceClient, CoordinateFilter, FlightPlanRequest,
+    FlightReleaseRequest, ReadyRequest, WaypointsRequest,
+};
 
 /// Provide endpoint url to use
 pub fn get_grpc_endpoint() -> String {
@@ -41,27 +45,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("is_ready RESPONSE={:?}", response.into_inner());
 
     let response = client
-        .submit_flight_plan(tonic::Request::new(
-            svc_compliance_client_grpc::client::FlightPlanRequest {
-                flight_plan_id: "".to_string(),
-                data: "".to_string(),
-            },
-        ))
+        .submit_flight_plan(tonic::Request::new(FlightPlanRequest {
+            flight_plan_id: "".to_string(),
+            data: "".to_string(),
+        }))
         .await?;
     println!("submit_flight_plan RESPONSE={:?}", response.into_inner());
 
     let response = client
-        .request_flight_release(tonic::Request::new(
-            svc_compliance_client_grpc::client::FlightReleaseRequest {
-                flight_plan_id: "".to_string(),
-                data: "".to_string(),
-            },
-        ))
+        .request_flight_release(tonic::Request::new(FlightReleaseRequest {
+            flight_plan_id: "".to_string(),
+            data: "".to_string(),
+        }))
         .await?;
     println!(
         "request_flight_release RESPONSE={:?}",
         response.into_inner()
     );
+
+    let response = client
+        .request_waypoints(tonic::Request::new(WaypointsRequest {
+            filter: Some(CoordinateFilter {
+                latitude_min: 52.20,
+                latitude_max: 53.4,
+                longitude_min: 4.4,
+                longitude_max: 5.3,
+            }),
+        }))
+        .await?;
+    println!("request_waypoints RESPONSE={:?}", response.into_inner());
 
     Ok(())
 }

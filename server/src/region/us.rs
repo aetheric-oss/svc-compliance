@@ -1,5 +1,6 @@
 use crate::grpc::server::grpc_server::{
-    FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
+    FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse, Waypoint,
+    WaypointsRequest, WaypointsResponse,
 };
 use crate::region::RegionInterface;
 
@@ -34,5 +35,17 @@ impl RegionInterface for USImpl {
             released: true,
             result: None,
         }))
+    }
+
+    fn request_waypoints(
+        &self,
+        _request: Request<WaypointsRequest>,
+    ) -> Result<Response<WaypointsResponse>, Status> {
+        region_info!("([nl] request_waypoints) entry.");
+
+        // TODO(R4): This is hardcoded in R3. Eventually an external API should be called.
+        let waypoints: Vec<Waypoint> = vec![];
+
+        Ok(Response::new(WaypointsResponse { waypoints }))
     }
 }
