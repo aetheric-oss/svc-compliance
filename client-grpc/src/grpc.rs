@@ -48,6 +48,56 @@ pub struct FlightReleaseResponse {
     #[prost(string, optional, tag = "3")]
     pub result: ::core::option::Option<::prost::alloc::string::String>,
 }
+/// Waypoint
+/// See example: <https://opennav.com/waypoint/NL>
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Waypoint {
+    /// Label
+    #[prost(string, tag = "1")]
+    pub identifier: ::prost::alloc::string::String,
+    /// Latitude
+    #[prost(double, tag = "2")]
+    pub latitude: f64,
+    /// Longitude
+    #[prost(double, tag = "3")]
+    pub longitude: f64,
+}
+/// CoordinateFilter
+#[derive(Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CoordinateFilter {
+    /// Minimum Latitude
+    #[prost(double, tag = "1")]
+    pub latitude_min: f64,
+    /// Maximum Latitude
+    #[prost(double, tag = "2")]
+    pub latitude_max: f64,
+    /// Minimum Longitude
+    #[prost(double, tag = "3")]
+    pub longitude_min: f64,
+    /// Maximum Longitude
+    #[prost(double, tag = "4")]
+    pub longitude_max: f64,
+}
+/// WaypointsRequest Body
+#[derive(Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WaypointsRequest {
+    /// Coordinates by which to filter waypoints
+    #[prost(message, optional, tag = "1")]
+    pub filter: ::core::option::Option<CoordinateFilter>,
+}
+/// WaypointsResponse Body
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WaypointsResponse {
+    /// Waypoints
+    #[prost(message, repeated, tag = "1")]
+    pub waypoints: ::prost::alloc::vec::Vec<Waypoint>,
+}
 /// Are you Ready?
 ///
 /// No arguments
@@ -189,6 +239,28 @@ pub mod rpc_service_client {
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/grpc.RpcService/requestFlightRelease",
+            );
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        /// request temporary flight restrictions
+        /// rpc requestTfr(TfrRequest) returns (TfrResponse);
+        /// request waypoints
+        pub async fn request_waypoints(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WaypointsRequest>,
+        ) -> Result<tonic::Response<super::WaypointsResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/grpc.RpcService/requestWaypoints",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }

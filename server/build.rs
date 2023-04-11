@@ -7,7 +7,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_config = tonic_build::configure()
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
-        .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]");
+        .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
+        .type_attribute("CoordinateFilter", "#[derive(Copy)]")
+        .type_attribute("WaypointsRequest", "#[derive(Copy)]");
+
     let client_config = server_config.clone();
 
     client_config
