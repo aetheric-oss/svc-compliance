@@ -3,8 +3,12 @@ pub mod macros;
 pub mod nl;
 pub mod us;
 
+#[allow(dead_code)]
+pub mod utils;
+
 use crate::grpc::server::grpc_server::{
     FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
+    WaypointsRequest, WaypointsResponse,
 };
 use tonic::{Request, Response, Status};
 
@@ -19,4 +23,9 @@ pub trait RegionInterface {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status>;
+
+    fn request_waypoints(
+        &self,
+        request: Request<WaypointsRequest>,
+    ) -> Result<Response<WaypointsResponse>, Status>;
 }
