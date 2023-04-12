@@ -842,6 +842,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "lib-common"
+version = "0.1.0"
+source = "git+https://github.com/Arrow-air/lib-common?tag=v0.1.0#283cc310280ddafd5a3e99ed7df026e19b0e193a"
+dependencies = [
+ "cargo-husky",
+ "chrono",
+ "prost-types",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1727,6 +1737,7 @@ dependencies = [
  "dms-coordinates",
  "dotenv",
  "hyper",
+ "lib-common",
  "log",
  "log4rs",
  "openssl",
@@ -1747,6 +1758,7 @@ dependencies = [
 name = "svc-compliance-client-grpc"
 version = "0.1.1-develop.1"
 dependencies = [
+ "dotenv",
  "prost",
  "prost-types",
  "tokio",

@@ -11,10 +11,10 @@ service RpcService {
     rpc submitFlightPlan (FlightPlanRequest) returns (FlightPlanResponse);
     // release flight plan
     rpc requestFlightRelease (FlightReleaseRequest) returns (FlightReleaseResponse);
-    // request temporary flight restrictions
-    // rpc requestTfr(TfrRequest) returns (TfrResponse);
     // request waypoints
     rpc requestWaypoints (WaypointsRequest) returns (WaypointsResponse);
+    // request flight restrictions
+    rpc requestRestrictions (RestrictionsRequest) returns (RestrictionsResponse);
 }
 
 //FlightPlanRequest
@@ -64,16 +64,22 @@ message Waypoint {
     double longitude = 3;
 }
 
+// Latitude and Longitude
+message Coordinate {
+    // Latitude
+    double latitude = 1;
+    // Longitude
+    double longitude = 2;
+}
+
 // CoordinateFilter
+// A rectangle defined by two coordinates
+//  where the edges are aligned North-South and East-West
 message CoordinateFilter {
-    // Minimum Latitude
-    double latitude_min = 1;
-    // Maximum Latitude
-    double latitude_max = 2;
-    // Minimum Longitude
-    double longitude_min = 3;
-    // Maximum Longitude
-    double longitude_max = 4;
+    // The Southeastern vertex
+    Coordinate min = 1;
+    // The Northwestern vertex
+    Coordinate max = 2;
 }
 
 // WaypointsRequest Body
@@ -88,12 +94,54 @@ message WaypointsResponse {
     repeated Waypoint waypoints = 1;
 }
 
-// Are you Ready?
+// RestrictionsRequest Body
+// Request temporary flight restrictions
+message RestrictionsRequest {
+    // Coordinates by which to filter Restrictions
+    CoordinateFilter filter = 1;
+}
+
+// RestrictionsResponse Body
+message RestrictionsResponse {
+    // List of flight restrictions in the area
+    repeated FlightRestriction restrictions = 1;
+}
+
+// FlightRestriction
+message FlightRestriction {
+    // ID
+    string identifier = 1;
+
+    // Restriction region vertices
+    repeated Coordinate vertices = 2;
+
+    // Altitude floor in meters
+    int32 altitude_meters_min = 3;
+
+    // Altitude ceiling in meters
+    int32 altitude_meters_max = 4;
+
+    // Start time
+    optional google.protobuf.Timestamp timestamp_start = 5;
+
+    // End time
+    optional google.protobuf.Timestamp timestamp_end = 6;
+
+    // Type
+    string restriction_type = 7;
+
+    // Reason
+    string reason = 8;
+}
+
+
+// ReadyRequest body
 message ReadyRequest {
     // No arguments
 }
 
-// I'm Ready
+// ReadyResponse body
+// Indicates if the service is ready for requests
 message ReadyResponse {
 
     // True if ready
