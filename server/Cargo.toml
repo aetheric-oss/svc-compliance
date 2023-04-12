@@ -35,6 +35,10 @@ tokio-util      = "0.7"
 tonic           = "0.8"
 tonic-health    = "0.7"
 
+[dependencies.lib-common]
+git = "https://github.com/Arrow-air/lib-common"
+tag = "v0.1.0"
+
 [dependencies.log4rs]
 features = [
   "background_rotation",

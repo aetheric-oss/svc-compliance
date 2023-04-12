@@ -63,23 +63,31 @@ pub struct Waypoint {
     #[prost(double, tag = "3")]
     pub longitude: f64,
 }
+/// Latitude and Longitude
+#[derive(Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Coordinate {
+    /// Latitude
+    #[prost(double, tag = "1")]
+    pub latitude: f64,
+    /// Longitude
+    #[prost(double, tag = "2")]
+    pub longitude: f64,
+}
 /// CoordinateFilter
+/// A rectangle defined by two coordinates
+///   where the edges are aligned North-South and East-West
 #[derive(Copy)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CoordinateFilter {
-    /// Minimum Latitude
-    #[prost(double, tag = "1")]
-    pub latitude_min: f64,
-    /// Maximum Latitude
-    #[prost(double, tag = "2")]
-    pub latitude_max: f64,
-    /// Minimum Longitude
-    #[prost(double, tag = "3")]
-    pub longitude_min: f64,
-    /// Maximum Longitude
-    #[prost(double, tag = "4")]
-    pub longitude_max: f64,
+    /// The Southeastern vertex
+    #[prost(message, optional, tag = "1")]
+    pub min: ::core::option::Option<Coordinate>,
+    /// The Northwestern vertex
+    #[prost(message, optional, tag = "2")]
+    pub max: ::core::option::Option<Coordinate>,
 }
 /// WaypointsRequest Body
 #[derive(Copy)]
@@ -98,14 +106,62 @@ pub struct WaypointsResponse {
     #[prost(message, repeated, tag = "1")]
     pub waypoints: ::prost::alloc::vec::Vec<Waypoint>,
 }
-/// Are you Ready?
+/// RestrictionsRequest Body
+/// Request temporary flight restrictions
+#[derive(Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RestrictionsRequest {
+    /// Coordinates by which to filter Restrictions
+    #[prost(message, optional, tag = "1")]
+    pub filter: ::core::option::Option<CoordinateFilter>,
+}
+/// RestrictionsResponse Body
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RestrictionsResponse {
+    /// List of flight restrictions in the area
+    #[prost(message, repeated, tag = "1")]
+    pub restrictions: ::prost::alloc::vec::Vec<FlightRestriction>,
+}
+/// FlightRestriction
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FlightRestriction {
+    /// ID
+    #[prost(string, tag = "1")]
+    pub identifier: ::prost::alloc::string::String,
+    /// Restriction region vertices
+    #[prost(message, repeated, tag = "2")]
+    pub vertices: ::prost::alloc::vec::Vec<Coordinate>,
+    /// Altitude floor in meters
+    #[prost(int32, tag = "3")]
+    pub altitude_meters_min: i32,
+    /// Altitude ceiling in meters
+    #[prost(int32, tag = "4")]
+    pub altitude_meters_max: i32,
+    /// Start time
+    #[prost(message, optional, tag = "5")]
+    pub timestamp_start: ::core::option::Option<::prost_types::Timestamp>,
+    /// End time
+    #[prost(message, optional, tag = "6")]
+    pub timestamp_end: ::core::option::Option<::prost_types::Timestamp>,
+    /// Type
+    #[prost(string, tag = "7")]
+    pub restriction_type: ::prost::alloc::string::String,
+    /// Reason
+    #[prost(string, tag = "8")]
+    pub reason: ::prost::alloc::string::String,
+}
+/// ReadyRequest body
 ///
 /// No arguments
 #[derive(Eq, Copy)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadyRequest {}
-/// I'm Ready
+/// ReadyResponse body
+/// Indicates if the service is ready for requests
 #[derive(Eq, Copy)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -242,8 +298,6 @@ pub mod rpc_service_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        /// request temporary flight restrictions
-        /// rpc requestTfr(TfrRequest) returns (TfrResponse);
         /// request waypoints
         pub async fn request_waypoints(
             &mut self,
@@ -261,6 +315,26 @@ pub mod rpc_service_client {
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/grpc.RpcService/requestWaypoints",
+            );
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        /// request flight restrictions
+        pub async fn request_restrictions(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RestrictionsRequest>,
+        ) -> Result<tonic::Response<super::RestrictionsResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/grpc.RpcService/requestRestrictions",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }

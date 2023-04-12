@@ -80,13 +80,17 @@ pub fn parse_waypoints_file(fname: &str, filter: CoordinateFilter) -> Result<Vec
         //
         // Apply Filter
         //
-        if latitude < filter.latitude_min || latitude > filter.latitude_max {
-            continue;
-        }
+        if let Some(min) = filter.min {
+            if waypoint.latitude < min.latitude || waypoint.longitude < min.longitude {
+                continue;
+            }
+        };
 
-        if longitude < filter.longitude_min || longitude > filter.longitude_max {
-            continue;
-        }
+        if let Some(max) = filter.max {
+            if waypoint.latitude > max.latitude || waypoint.longitude > max.longitude {
+                continue;
+            }
+        };
 
         println!(
             "Waypoint {{ identifier: {:?}.to_string(), latitude: {:.4}, longitude: {:.4} }},",
