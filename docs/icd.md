@@ -51,3 +51,5 @@ GRPC server methods are called "services", an unfortunate name clash with the br
 | `IsReady` | Returns a message indicating if this service is ready for requests.<br>Similar to a health check, if a server is not "ready" it could be considered dead by the client making the request.
 | submitFlightPlan | Submit a flight plan to the regional authority.
 | requestFlightRelease | Submit a flight release (pre-takeoff) request.
+| requestWaypoints | Request a list of waypoints within the bounds of provided coordinates.
+| requestRestrictions | Request a list of no-fly zones and temporary flight restrictions within the bounds of provided coordinates.
