@@ -1,12 +1,16 @@
 //! gRPC client implementation
 
+use client::rpc_service_client::RpcServiceClient;
+use client::FlightPlanRequest;
+use client::FlightReleaseRequest;
+use client::ReadyRequest;
+use client::RestrictionsRequest;
+use client::WaypointsRequest;
+use client::{Coordinate, CoordinateFilter};
+use dotenv::dotenv;
 use std::env;
-
 #[allow(unused_qualifications, missing_docs)]
-use svc_compliance_client_grpc::client::{
-    rpc_service_client::RpcServiceClient, CoordinateFilter, FlightPlanRequest,
-    FlightReleaseRequest, ReadyRequest, WaypointsRequest,
-};
+use svc_compliance_client_grpc::client;
 
 /// Provide endpoint url to use
 pub fn get_grpc_endpoint() -> String {
@@ -27,7 +31,39 @@ pub fn get_grpc_endpoint() -> String {
 /// Example svc-compliance-client-grpc
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
+
     let grpc_endpoint = get_grpc_endpoint();
+
+    let region: String = match env::var("REGION_CODE") {
+        Ok(val) => val,
+        Err(_) => "nl".to_string(), // default value
+    };
+
+    println!("REGION_CODE={}", region);
+    let filter = match region.as_str() {
+        "nl" => CoordinateFilter {
+            min: Some(Coordinate {
+                latitude: 52.20,
+                longitude: 4.4,
+            }),
+            max: Some(Coordinate {
+                latitude: 53.4,
+                longitude: 5.3,
+            }),
+        },
+        "us" => CoordinateFilter {
+            min: Some(Coordinate {
+                latitude: 30.0,
+                longitude: -105.0,
+            }),
+            max: Some(Coordinate {
+                latitude: 35.0,
+                longitude: -100.0,
+            }),
+        },
+        _ => panic!(),
+    };
 
     println!(
         "NOTE: Ensure the server is running on {} or this example will fail.",
@@ -65,15 +101,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let response = client
         .request_waypoints(tonic::Request::new(WaypointsRequest {
-            filter: Some(CoordinateFilter {
-                latitude_min: 52.20,
-                latitude_max: 53.4,
-                longitude_min: 4.4,
-                longitude_max: 5.3,
-            }),
+            filter: Some(filter),
         }))
         .await?;
     println!("request_waypoints RESPONSE={:?}", response.into_inner());
+
+    let response = client
+        .request_restrictions(tonic::Request::new(RestrictionsRequest {
+            filter: Some(filter),
+        }))
+        .await?;
+
+    println!("request_restrictions RESPONSE={:?}", response.into_inner());
 
     Ok(())
 }
