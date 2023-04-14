@@ -9,6 +9,7 @@ use log::{error, info};
 
 ///Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
+#[cfg(not(tarpaulin_include))]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("(svc-compliance) server startup.");
 

@@ -110,3 +110,195 @@ pub trait RegionInterface {
     async fn refresh_restrictions(&self, restrictions: Arc<Mutex<Vec<FlightRestriction>>>);
     async fn refresh_waypoints(&self, waypoints: Arc<Mutex<Vec<Waypoint>>>);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::grpc::server::grpc_server::FlightRestriction;
+    use crate::grpc::server::grpc_server::{Coordinate, CoordinateFilter, Waypoint};
+    use crate::region::us::USImpl;
+
+    #[tokio::test]
+    async fn ut_request_restrictions_coordinate_filter() {
+        let filter_min = Coordinate {
+            latitude: -19.999,
+            longitude: 1.999,
+        };
+        let filter_max = Coordinate {
+            latitude: -9.999,
+            longitude: 19.999,
+        };
+        let filter = CoordinateFilter {
+            min: Some(filter_min),
+            max: Some(filter_max),
+        };
+
+        let restrictions = Arc::new(Mutex::new(vec![
+            FlightRestriction {
+                identifier: "1".to_string(),
+                vertices: vec![
+                    // Outside the filter window
+                    Coordinate {
+                        latitude: filter_max.latitude + 0.001,
+                        longitude: filter_max.longitude + 0.001,
+                    },
+                    // One vertex in the filter window, this restriction should be returned
+                    Coordinate {
+                        latitude: filter_min.latitude,
+                        longitude: filter_max.longitude,
+                    },
+                    // Outside the filter window
+                    Coordinate {
+                        latitude: filter_min.latitude - 0.001,
+                        longitude: filter_min.longitude - 0.001,
+                    },
+                ],
+                altitude_meters_min: 0,
+                altitude_meters_max: 1000,
+                reason: "Test".to_string(),
+                restriction_type: "Test".to_string(),
+                timestamp_start: None,
+                timestamp_end: None,
+            },
+            FlightRestriction {
+                identifier: "2".to_string(),
+                vertices: vec![
+                    // Outside the filter window
+                    Coordinate {
+                        latitude: filter_max.latitude + 0.001,
+                        longitude: filter_max.longitude + 0.001,
+                    },
+                    // Outside the filter window
+                    Coordinate {
+                        latitude: filter_min.latitude - 0.001,
+                        longitude: filter_min.longitude - 0.001,
+                    },
+                    // Outside the filter window
+                    Coordinate {
+                        latitude: filter_min.latitude - 0.001,
+                        longitude: filter_max.longitude + 0.001,
+                    },
+                ],
+                altitude_meters_min: 0,
+                altitude_meters_max: 1000,
+                reason: "Test".to_string(),
+                restriction_type: "Test".to_string(),
+                timestamp_start: None,
+                timestamp_end: None,
+            },
+        ]));
+
+        // Test that only one of the two restrictions is returned
+        let request = Request::new(RestrictionsRequest {
+            filter: Some(filter),
+        });
+
+        let region = USImpl {};
+        let result = region.request_restrictions(restrictions.clone(), request);
+        let Ok(response) = result else {
+            panic!();
+        };
+        let response = response.into_inner();
+
+        assert_eq!(response.restrictions.len(), 1);
+        assert_eq!(response.restrictions[0].identifier, "1");
+
+        // Test that none of the restrictions are returned
+        let request = Request::new(RestrictionsRequest {
+            filter: Some(CoordinateFilter {
+                min: Some(Coordinate {
+                    latitude: filter_max.latitude + 0.002,
+                    longitude: filter_max.longitude + 0.002,
+                }),
+                max: None,
+            }),
+        });
+
+        let result = region.request_restrictions(restrictions.clone(), request);
+        let Ok(response) = result else {
+            panic!();
+        };
+        let response = response.into_inner();
+
+        assert_eq!(response.restrictions.len(), 0);
+
+        // Test that both restrictions are returned
+        let request = Request::new(RestrictionsRequest {
+            filter: Some(CoordinateFilter {
+                min: None,
+                max: None,
+            }),
+        });
+
+        let result = region.request_restrictions(restrictions.clone(), request);
+        let Ok(response) = result else {
+            panic!();
+        };
+        let response = response.into_inner();
+        assert_eq!(response.restrictions.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn ut_request_waypoints() {
+        let filter_min = Coordinate {
+            latitude: 9.999,
+            longitude: 9.999,
+        };
+        let filter_max = Coordinate {
+            latitude: 19.999,
+            longitude: 19.999,
+        };
+        let filter = CoordinateFilter {
+            min: Some(filter_min),
+            max: Some(filter_max),
+        };
+
+        let waypoints = Arc::new(Mutex::new(vec![
+            // Outside filter
+            Waypoint {
+                identifier: "1".to_string(),
+                latitude: filter_min.latitude - 0.00001,
+                longitude: filter_min.longitude - 0.00001,
+            },
+            // This waypoint is on the edge of the filter window
+            Waypoint {
+                identifier: "2".to_string(),
+                latitude: filter_min.latitude,
+                longitude: filter_min.longitude,
+            },
+            // Outside filter
+            Waypoint {
+                identifier: "3".to_string(),
+                latitude: filter_max.longitude + 0.00001,
+                longitude: filter_max.longitude,
+            },
+            // This waypoint is on the edge of the filter window
+            Waypoint {
+                identifier: "4".to_string(),
+                latitude: filter_max.latitude,
+                longitude: filter_max.longitude,
+            },
+        ]));
+
+        let request = Request::new(WaypointsRequest {
+            filter: Some(filter),
+        });
+
+        let region = USImpl {};
+        let result = region.request_waypoints(waypoints.clone(), request);
+        let Ok(response) = result else {
+            panic!();
+        };
+        let response = response.into_inner();
+
+        let valid_waypoint_1 = waypoints.lock().unwrap()[1].clone();
+        let valid_waypoint_2 = waypoints.lock().unwrap()[3].clone();
+        assert_eq!(response.waypoints.len(), 2);
+        assert_eq!(response.waypoints[0].identifier.as_str(), "2");
+        assert_eq!(response.waypoints[0].latitude, valid_waypoint_1.latitude);
+        assert_eq!(response.waypoints[0].longitude, valid_waypoint_1.longitude);
+        assert_eq!(response.waypoints[1].identifier.as_str(), "4");
+        assert_eq!(response.waypoints[1].latitude, valid_waypoint_2.latitude);
+        assert_eq!(response.waypoints[1].longitude, valid_waypoint_2.longitude);
+    }
+}

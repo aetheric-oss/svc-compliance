@@ -23,6 +23,7 @@ pub struct USImpl {}
 
 #[tonic::async_trait]
 impl RegionInterface for USImpl {
+    #[cfg(not(tarpaulin_include))]
     fn submit_flight_plan(
         &self,
         request: Request<FlightPlanRequest>,
@@ -37,6 +38,7 @@ impl RegionInterface for USImpl {
         }))
     }
 
+    #[cfg(not(tarpaulin_include))]
     fn request_flight_release(
         &self,
         request: Request<FlightReleaseRequest>,
@@ -51,6 +53,7 @@ impl RegionInterface for USImpl {
         }))
     }
 
+    #[cfg(not(tarpaulin_include))]
     async fn refresh_restrictions(&self, restrictions: Arc<Mutex<Vec<FlightRestriction>>>) {
         //
         // TODO(R4): This is all currently hardcoded. This should be replaced with a call to
@@ -153,6 +156,7 @@ impl RegionInterface for USImpl {
         // }
     }
 
+    #[cfg(not(tarpaulin_include))]
     async fn refresh_waypoints(&self, waypoints: Arc<Mutex<Vec<Waypoint>>>) {
         //
         // TODO(R4): This is currently hardcoded. This should be replaced with a call to an API

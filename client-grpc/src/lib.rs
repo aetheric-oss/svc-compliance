@@ -3,5 +3,6 @@
 /// Client Library: Client Functions, Structs
 pub mod client {
     #![allow(unused_qualifications)]
+    #[cfg(not(tarpaulin_include))]
     include!("grpc.rs");
 }
