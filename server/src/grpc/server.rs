@@ -1,6 +1,7 @@
 ///module svc_storage generated from svc-storage.proto
 pub mod grpc_server {
     #![allow(unused_qualifications, missing_docs)]
+    #[cfg(not(tarpaulin_include))]
     tonic::include_proto!("grpc");
 }
 
