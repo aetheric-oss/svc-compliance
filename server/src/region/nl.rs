@@ -23,12 +23,17 @@ pub struct NLImpl {}
 
 #[tonic::async_trait]
 impl RegionInterface for NLImpl {
+    #[cfg(not(tarpaulin_include))]
     fn submit_flight_plan(
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
         region_info!("([nl] submit_flight_plan) entry.");
+
+        //
         // TODO(R4) implement
+        //
+
         let flight_plan_id = request.into_inner().flight_plan_id;
         Ok(Response::new(FlightPlanResponse {
             flight_plan_id,
@@ -37,6 +42,7 @@ impl RegionInterface for NLImpl {
         }))
     }
 
+    #[cfg(not(tarpaulin_include))]
     fn request_flight_release(
         &self,
         request: Request<FlightReleaseRequest>,
@@ -55,6 +61,7 @@ impl RegionInterface for NLImpl {
         }))
     }
 
+    #[cfg(not(tarpaulin_include))]
     async fn refresh_restrictions(&self, restrictions: Arc<Mutex<Vec<FlightRestriction>>>) {
         //
         // TODO(R4): This is currently hardcoded. This should be replaced with a call to
@@ -169,6 +176,7 @@ impl RegionInterface for NLImpl {
         // }
     }
 
+    #[cfg(not(tarpaulin_include))]
     async fn refresh_waypoints(&self, waypoints: Arc<Mutex<Vec<Waypoint>>>) {
         //
         // TODO(R4): This is currently hardcoded. This should be replaced with a call to an API
