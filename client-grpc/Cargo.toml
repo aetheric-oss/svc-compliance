@@ -1,7 +1,7 @@
 [package]
 description = "Arrow GRPC client for the compliance service"
 name        = "svc-compliance-client-grpc"
-version     = "0.1.1-develop.1"
+version     = "0.1.1-develop.2"
 
 categories.workspace   = true
 edition.workspace      = true
