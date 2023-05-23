@@ -1,32 +1,47 @@
+//! Provides region specific implementations for the compliance functions
+
 #[macro_use]
 pub mod macros;
-pub mod nl;
-pub mod us;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "nl")] {
+        pub mod nl;
+    } else {
+        pub mod us;
+    }
+}
 
 #[allow(dead_code)]
 pub mod utils;
 
-use crate::grpc::server::grpc_server;
-use grpc_server::{FlightPlanRequest, FlightPlanResponse};
-use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
-use grpc_server::{FlightRestriction, RestrictionsRequest, RestrictionsResponse};
-use grpc_server::{Waypoint, WaypointsRequest, WaypointsResponse};
+use crate::grpc::server;
+use server::{FlightPlanRequest, FlightPlanResponse};
+use server::{FlightReleaseRequest, FlightReleaseResponse};
+use server::{FlightRestriction, RestrictionsRequest, RestrictionsResponse};
+use server::{Waypoint, WaypointsRequest, WaypointsResponse};
 use std::sync::{Arc, Mutex};
 use tonic::{Request, Response, Status};
+
+/// Generic region struct to be used to implement the region specific traits
+#[derive(Debug, Clone, Copy)]
+pub struct RegionImpl {}
 
 /// Interface to regional authorities
 #[tonic::async_trait]
 pub trait RegionInterface {
+    /// Submit a new flight plan for the region
     fn submit_flight_plan(
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status>;
 
+    /// Request a flight plan release for the region
     fn request_flight_release(
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status>;
 
+    /// Request the region's waypoints
     fn request_waypoints(
         &self,
         waypoints: Arc<Mutex<Vec<Waypoint>>>,
@@ -64,6 +79,7 @@ pub trait RegionInterface {
         Ok(Response::new(WaypointsResponse { waypoints: result }))
     }
 
+    /// Request the region's restrictions
     fn request_restrictions(
         &self,
         restrictions: Arc<Mutex<Vec<FlightRestriction>>>,
@@ -107,16 +123,17 @@ pub trait RegionInterface {
         }))
     }
 
+    /// Refresh the in memory stored restrictions
     async fn refresh_restrictions(&self, restrictions: Arc<Mutex<Vec<FlightRestriction>>>);
+    /// Refresh the in memory stored waypoints
     async fn refresh_waypoints(&self, waypoints: Arc<Mutex<Vec<Waypoint>>>);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::grpc::server::grpc_server::FlightRestriction;
-    use crate::grpc::server::grpc_server::{Coordinate, CoordinateFilter, Waypoint};
-    use crate::region::us::USImpl;
+    use crate::grpc::server::{Coordinate, CoordinateFilter, FlightRestriction, Waypoint};
+    use crate::region::RegionImpl;
 
     #[tokio::test]
     async fn ut_request_restrictions_coordinate_filter() {
@@ -193,7 +210,7 @@ mod tests {
             filter: Some(filter),
         });
 
-        let region = USImpl {};
+        let region = RegionImpl {};
         let result = region.request_restrictions(restrictions.clone(), request);
         let Ok(response) = result else {
             panic!();
@@ -284,7 +301,7 @@ mod tests {
             filter: Some(filter),
         });
 
-        let region = USImpl {};
+        let region = RegionImpl {};
         let result = region.request_waypoints(waypoints.clone(), request);
         let Ok(response) = result else {
             panic!();

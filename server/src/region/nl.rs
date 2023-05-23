@@ -1,9 +1,9 @@
-use crate::grpc::server::grpc_server;
-use grpc_server::Coordinate;
-use grpc_server::FlightRestriction;
-use grpc_server::Waypoint;
-use grpc_server::{FlightPlanRequest, FlightPlanResponse};
-use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
+//! Region implementation for The Netherlands (NL)
+
+use crate::grpc::server::{
+    Coordinate, FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
+    FlightRestriction, Waypoint,
+};
 
 use crate::region::RegionInterface;
 use chrono::{Duration, Utc};
@@ -19,10 +19,8 @@ use tonic::{Request, Response, Status};
 // const NL_WAYPOINT_REFRESH_INTERVAL_MS: u64 = 60000; // 60s
 
 /// Processes for submission to the Dutch (Netherlands) authorities
-pub struct NLImpl {}
-
 #[tonic::async_trait]
-impl RegionInterface for NLImpl {
+impl RegionInterface for super::RegionImpl {
     #[cfg(not(tarpaulin_include))]
     fn submit_flight_plan(
         &self,
