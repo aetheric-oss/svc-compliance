@@ -16,7 +16,7 @@ pub struct FlightPlanResponse {
     /// Flight Plan Id
     #[prost(string, tag = "1")]
     pub flight_plan_id: ::prost::alloc::string::String,
-    /// JSON data of the flight plan
+    /// Status result for submitted
     #[prost(bool, tag = "2")]
     pub submitted: bool,
     /// Optional error or warning message
@@ -41,7 +41,7 @@ pub struct FlightReleaseResponse {
     /// Flight Plan Id
     #[prost(string, tag = "1")]
     pub flight_plan_id: ::prost::alloc::string::String,
-    /// JSON data of the flight plan
+    /// Status result for released
     #[prost(bool, tag = "2")]
     pub released: bool,
     /// Optional error or warning message
@@ -171,6 +171,7 @@ pub struct ReadyResponse {
     pub ready: bool,
 }
 /// Generated client implementations.
+#[cfg(not(tarpaulin_include))]
 pub mod rpc_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
