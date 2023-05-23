@@ -1,11 +1,8 @@
-#![doc = include_str!("../README.md")]
+//! Main function starting the server and initializing dependencies.
 
-mod config;
-mod grpc;
-mod region;
-
-use dotenv::dotenv;
-use log::{error, info};
+use log::info;
+use svc_compliance::config::Config;
+use svc_compliance::grpc;
 
 ///Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
@@ -13,22 +10,21 @@ use log::{error, info};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("(svc-compliance) server startup.");
 
-    //initialize dotenv library which reads .env file
-    dotenv().ok();
+    // Will use default config settings if no environment vars are found.
+    let config = Config::try_from_env().unwrap_or_default();
 
-    // initialize config from .env file
-    let config = config::Config::from_env().unwrap_or_default();
-
-    // initialize logger
-    let log_cfg = config.log_config.as_str();
+    println!("{:?}", config);
+    // Start Logger
+    let log_cfg: &str = config.log_config.as_str();
     if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
-        error!("(logger) could not parse {}. {}", log_cfg, e);
-        panic!();
+        panic!(
+            "(logger) could not parse log config {} found in config {:?}: {}.",
+            log_cfg, config, e
+        );
     }
 
-    // start gRPC server
-    let _ = tokio::spawn(grpc::server::server(config)).await;
+    tokio::spawn(grpc::server::grpc_server(config)).await?;
 
-    info!("(svc-compliance) server shutdown.");
+    info!("Server shutdown.");
     Ok(())
 }

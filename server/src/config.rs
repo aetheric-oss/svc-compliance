@@ -12,8 +12,6 @@ use serde::Deserialize;
 pub struct Config {
     /// port to be used for gRPC server
     pub docker_port_grpc: u16,
-    /// abbreviation for the region e.g. us, nl, ne, etc.
-    pub region_code: String,
     /// path to log configuration YAML file
     pub log_config: String,
 }
@@ -27,24 +25,52 @@ impl Default for Config {
 impl Config {
     /// Default values for Config
     pub fn new() -> Self {
+        log::warn!("Creating Config object with default values.");
         Config {
             docker_port_grpc: 50051,
-            region_code: String::from("nl"),
-            log_config: String::from("log4rs.yaml"),
+            log_config: String::from("./log4rs.yaml"),
         }
     }
 
     /// Create a new `Config` object using environment variables
-    pub fn from_env() -> Result<Self, ConfigError> {
+    pub fn try_from_env() -> Result<Self, ConfigError> {
         // read .env file if present
         dotenv().ok();
 
         config::Config::builder()
             .set_default("docker_port_grpc", 50051)?
-            .set_default("region_code", String::from("nl"))?
-            .set_default("log_config", String::from("log4rs.yaml"))?
+            .set_default("log_config", String::from("./log4rs.yaml"))?
             .add_source(Environment::default().separator("__"))
             .build()?
             .try_deserialize()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_from_default() {
+        let config = Config::default();
+
+        assert_eq!(config.docker_port_grpc, 50051);
+        assert_eq!(config.log_config, String::from("./log4rs.yaml"));
+    }
+
+    #[tokio::test]
+    async fn test_config_from_env() {
+        async move {
+            std::env::set_var("DOCKER_PORT_GRPC", "6789");
+            std::env::set_var("LOG_CONFIG", "config_file.yaml");
+
+            let config = Config::try_from_env();
+            assert!(config.is_ok());
+            let config = config.unwrap();
+
+            assert_eq!(config.docker_port_grpc, 6789);
+            assert_eq!(config.log_config, String::from("config_file.yaml"));
+        }
+        .await
     }
 }
