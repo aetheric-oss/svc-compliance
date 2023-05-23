@@ -10,14 +10,42 @@ keywords.workspace     = true
 license-file.workspace = true
 repository.workspace   = true
 
+[features]
+# Will implement mock functions for the client, only use for tests!
+mock_client = ["tower", "tokio", "lib-common/grpc_mock"]
+test_util = [
+  "tower",
+  "tokio",
+  "lib-common/grpc_mock",
+  "svc-compliance/mock_server",
+]
+
 [dependencies]
-dotenv      = "0.15"
-prost       = "0.11"
-prost-types = "0.11"
-tonic       = "0.8"
+cfg-if         = "1.0"
+log            = { version = "0.4" }
+prost          = "0.11"
+prost-types    = "0.11"
+svc-compliance = { path = "../server", optional = true }
+tonic          = "0.8"
+tower          = { version = "0.4", optional = true }
+
+[dependencies.lib-common]
+features = ["grpc"]
+git      = "https://github.com/Arrow-air/lib-common.git"
+tag      = "v0.1.1-develop.2"
+
+[dependencies.tokio]
+features = ["macros", "rt-multi-thread"]
+optional = true
+version  = "1.28"
 
 [dev-dependencies]
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+logtest = "2.0"
+
+# Make sure we enable the required modules for testing
+[dev-dependencies.svc-compliance-client-grpc]
+features = ["test_util"]
+path     = "."
 
 [[example]]
 name = "grpc"
