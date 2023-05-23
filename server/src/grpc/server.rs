@@ -1,39 +1,75 @@
-///module svc_storage generated from svc-storage.proto
-pub mod grpc_server {
+//! gRPC server implementation
+
+///  module svc_storage generated from svc-storage.proto
+mod grpc_server {
     #![allow(unused_qualifications, missing_docs)]
-    #[cfg(not(tarpaulin_include))]
     tonic::include_proto!("grpc");
 }
 
-use grpc_server::rpc_service_server::{RpcService, RpcServiceServer};
-use grpc_server::{FlightPlanRequest, FlightPlanResponse};
-use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
-use grpc_server::{FlightRestriction, RestrictionsRequest, RestrictionsResponse};
-use grpc_server::{ReadyRequest, ReadyResponse};
-use grpc_server::{Waypoint, WaypointsRequest, WaypointsResponse};
+pub use grpc_server::rpc_service_server::{RpcService, RpcServiceServer};
+pub use grpc_server::{Coordinate, CoordinateFilter};
+pub use grpc_server::{FlightPlanRequest, FlightPlanResponse};
+pub use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
+pub use grpc_server::{FlightRestriction, RestrictionsRequest, RestrictionsResponse};
+pub use grpc_server::{ReadyRequest, ReadyResponse};
+pub use grpc_server::{Waypoint, WaypointsRequest, WaypointsResponse};
 
-use svc_compliance::shutdown_signal;
+use crate::config::Config;
+use crate::region::RegionInterface;
+use crate::shutdown_signal;
 
-use crate::region;
+use core::fmt;
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
-///Implementation of gRPC endpoints
-pub struct ServiceImpl {
-    region: Box<dyn region::RegionInterface + Send + Sync>,
+/// struct to implement the gRPC server functions
+pub struct ServerImpl {
+    region: Box<dyn RegionInterface + Send + Sync>,
     restrictions: Arc<Mutex<Vec<FlightRestriction>>>,
     waypoints: Arc<Mutex<Vec<Waypoint>>>,
 }
+impl fmt::Debug for ServerImpl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ServerImpl")
+            .field("region", &"RegionInterface (not printable)")
+            .field(
+                "restrictions",
+                &format_args!("{:?}", self.restrictions.lock().unwrap()),
+            )
+            .field(
+                "waypoints",
+                &format_args!("{:?}", self.waypoints.lock().unwrap()),
+            )
+            .finish()
+    }
+}
 
+impl Default for ServerImpl {
+    fn default() -> Self {
+        let region = Box::new(crate::region::RegionImpl {});
+        let restrictions = Arc::new(Mutex::new(Vec::new()));
+        let waypoints = Arc::new(Mutex::new(Vec::new()));
+
+        Self {
+            region,
+            restrictions,
+            waypoints,
+        }
+    }
+}
+
+#[cfg(not(feature = "mock_server"))]
 #[tonic::async_trait]
-impl RpcService for ServiceImpl {
+impl RpcService for ServerImpl {
     /// Returns ready:true when service is available
     async fn is_ready(
         &self,
         _request: Request<ReadyRequest>,
     ) -> Result<Response<ReadyResponse>, Status> {
-        grpc_info!("(grpc is_ready) entry.");
+        grpc_warn!("(is_ready) compliance server.");
+        grpc_debug!("(is_ready) request: {:?}", request);
         let response = ReadyResponse { ready: true };
         Ok(Response::new(response))
     }
@@ -42,7 +78,8 @@ impl RpcService for ServiceImpl {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        grpc_info!("(grpc submit_flight_plan) entry.");
+        grpc_warn!("(submit_flight_plan) compliance server.");
+        grpc_debug!("(submit_flight_plan) request: {:?}", request);
         self.region.submit_flight_plan(request)
     }
 
@@ -50,7 +87,8 @@ impl RpcService for ServiceImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        grpc_info!("(grpc request_flight_release) entry.");
+        grpc_warn!("(request_flight_release) compliance server.");
+        grpc_debug!("(request_flight_release) request: {:?}", request);
         self.region.request_flight_release(request)
     }
 
@@ -58,7 +96,8 @@ impl RpcService for ServiceImpl {
         &self,
         request: Request<WaypointsRequest>,
     ) -> Result<Response<WaypointsResponse>, Status> {
-        grpc_info!("(grpc request_waypoints) entry.");
+        grpc_warn!("(request_waypoints) compliance server.");
+        grpc_debug!("(request_waypoints) request: {:?}", request);
         self.region
             .request_waypoints(self.waypoints.clone(), request)
     }
@@ -67,24 +106,10 @@ impl RpcService for ServiceImpl {
         &self,
         request: Request<RestrictionsRequest>,
     ) -> Result<Response<RestrictionsResponse>, Status> {
-        grpc_info!("(grpc request_restrictions) entry.");
+        grpc_warn!("(request_restrictions) compliance server.");
+        grpc_debug!("(request_restrictions) request: {:?}", request);
         self.region
             .request_restrictions(self.restrictions.clone(), request)
-    }
-}
-
-///Returns region implementation based on REGION_CODE environment variable
-fn get_region_impl(
-    config: crate::config::Config,
-) -> Result<Box<dyn region::RegionInterface + Send + Sync>, ()> {
-    grpc_info!("(get_region_impl) entry.");
-    match config.region_code.as_str() {
-        "us" => Ok(Box::new(region::us::USImpl {})),
-        "nl" => Ok(Box::new(region::nl::NLImpl {})),
-        _ => {
-            grpc_error!("(get_region) Unknown region: {}.", config.region_code);
-            Err(())
-        }
     }
 }
 
@@ -100,44 +125,203 @@ fn get_region_impl(
 /// }
 /// ```
 #[cfg(not(tarpaulin_include))]
-pub async fn server(config: crate::config::Config) -> Result<(), ()> {
-    grpc_info!("(grpc_server) entry.");
+pub async fn grpc_server(config: Config) {
+    grpc_debug!("(grpc_server) entry.");
 
-    // GRPC Server
+    // Grpc Server
     let grpc_port = config.docker_port_grpc;
-
-    let addr = format!("[::]:{}", grpc_port);
-    let Ok(full_grpc_addr) = addr.parse() else {
-        grpc_error!("(grpc_server) invalid address: {:?}, exiting.", addr);
-        return Err(());
+    let full_grpc_addr: SocketAddr = match format!("[::]:{}", grpc_port).parse() {
+        Ok(addr) => addr,
+        Err(e) => {
+            grpc_error!("Failed to parse gRPC address: {}", e);
+            return;
+        }
     };
 
-    let region = get_region_impl(config)?;
-    let restrictions = Arc::new(Mutex::new(Vec::new()));
-    let waypoints = Arc::new(Mutex::new(Vec::new()));
-
+    let imp = ServerImpl::default();
     // TODO(R4): Move these to a thread and allow to loop
-    region.refresh_restrictions(restrictions.clone()).await;
-    region.refresh_waypoints(waypoints.clone()).await;
-
-    let imp = ServiceImpl {
-        region,
-        restrictions,
-        waypoints,
-    };
+    imp.region
+        .refresh_restrictions(imp.restrictions.clone())
+        .await;
+    imp.region.refresh_waypoints(imp.waypoints.clone()).await;
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
-        .set_serving::<RpcServiceServer<ServiceImpl>>()
+        .set_serving::<RpcServiceServer<ServerImpl>>()
         .await;
 
     //start server
-    grpc_info!("(grpc) hosted at {}.", full_grpc_addr);
-    let _ = Server::builder()
+    grpc_info!("Starting gRPC services on: {}.", full_grpc_addr);
+    match Server::builder()
         .add_service(health_service)
         .add_service(RpcServiceServer::new(imp))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc"))
-        .await;
+        .await
+    {
+        Ok(_) => grpc_info!("gRPC server running at: {}.", full_grpc_addr),
+        Err(e) => {
+            grpc_error!("could not start gRPC server: {}", e);
+        }
+    };
+}
 
-    Ok(())
+#[cfg(feature = "mock_server")]
+#[tonic::async_trait]
+impl RpcService for ServerImpl {
+    async fn is_ready(
+        &self,
+        request: Request<ReadyRequest>,
+    ) -> Result<Response<ReadyResponse>, Status> {
+        grpc_warn!("(is_ready MOCK) compliance server.");
+        grpc_debug!("(is_ready MOCK) request: {:?}", request);
+        let response = ReadyResponse { ready: true };
+        Ok(Response::new(response))
+    }
+
+    async fn submit_flight_plan(
+        &self,
+        request: Request<FlightPlanRequest>,
+    ) -> Result<Response<FlightPlanResponse>, Status> {
+        grpc_warn!("(submit_flight_plan MOCK) compliance server.");
+        grpc_debug!("(submit_flight_plan MOCK) request: {:?}", request);
+        let request = request.into_inner();
+        Ok(tonic::Response::new(FlightPlanResponse {
+            flight_plan_id: request.flight_plan_id,
+            submitted: true,
+            result: None,
+        }))
+    }
+
+    async fn request_flight_release(
+        &self,
+        request: Request<FlightReleaseRequest>,
+    ) -> Result<Response<FlightReleaseResponse>, Status> {
+        grpc_warn!("(request_flight_release MOCK) compliance server.");
+        grpc_debug!("(request_flight_release MOCK) request: {:?}", request);
+        let request = request.into_inner();
+        Ok(tonic::Response::new(FlightReleaseResponse {
+            flight_plan_id: request.flight_plan_id,
+            released: true,
+            result: None,
+        }))
+    }
+
+    async fn request_waypoints(
+        &self,
+        request: Request<WaypointsRequest>,
+    ) -> Result<Response<WaypointsResponse>, Status> {
+        grpc_warn!("(request_waypoints MOCK) compliance server.");
+        grpc_debug!("(request_waypoints MOCK) request: {:?}", request);
+        Ok(tonic::Response::new(WaypointsResponse {
+            waypoints: vec![],
+        }))
+    }
+
+    async fn request_restrictions(
+        &self,
+        request: Request<RestrictionsRequest>,
+    ) -> Result<Response<RestrictionsResponse>, Status> {
+        grpc_warn!("(request_restrictions MOCK) compliance server.");
+        grpc_debug!("(request_restrictions MOCK) request: {:?}", request);
+        Ok(tonic::Response::new(RestrictionsResponse {
+            restrictions: vec![],
+        }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::grpc_server::*;
+    use super::*;
+
+    #[tokio::test]
+    async fn test_grpc_server_is_ready() {
+        let imp = ServerImpl::default();
+        let result = imp.is_ready(Request::new(ReadyRequest {})).await;
+        assert!(result.is_ok());
+        let result: ReadyResponse = result.unwrap().into_inner();
+        assert_eq!(result.ready, true);
+    }
+
+    #[tokio::test]
+    async fn test_grpc_submit_flight_plan() {
+        let imp = ServerImpl::default();
+        let result = imp
+            .submit_flight_plan(Request::new(FlightPlanRequest {
+                flight_plan_id: "".to_string(),
+                data: "".to_string(),
+            }))
+            .await;
+
+        assert!(result.is_ok());
+        let result: FlightPlanResponse = result.unwrap().into_inner();
+        println!("{:?}", result);
+        assert_eq!(result.submitted, true);
+    }
+
+    #[tokio::test]
+    async fn test_grpc_request_flight_release() {
+        let imp = ServerImpl::default();
+        let result = imp
+            .request_flight_release(Request::new(FlightReleaseRequest {
+                flight_plan_id: "".to_string(),
+                data: "".to_string(),
+            }))
+            .await;
+
+        assert!(result.is_ok());
+        let result: FlightReleaseResponse = result.unwrap().into_inner();
+        println!("{:?}", result);
+        assert_eq!(result.released, true);
+    }
+
+    #[tokio::test]
+    async fn test_grpc_request_waypoints() {
+        let imp = ServerImpl::default();
+
+        let filter = CoordinateFilter {
+            min: Some(Coordinate {
+                latitude: 30.0,
+                longitude: -105.0,
+            }),
+            max: Some(Coordinate {
+                latitude: 35.0,
+                longitude: -100.0,
+            }),
+        };
+        let result = imp
+            .request_waypoints(Request::new(WaypointsRequest {
+                filter: Some(filter),
+            }))
+            .await;
+
+        assert!(result.is_ok());
+        let result: WaypointsResponse = result.unwrap().into_inner();
+        println!("{:?}", result);
+    }
+
+    #[tokio::test]
+    async fn test_grpc_request_restrictions() {
+        let imp = ServerImpl::default();
+
+        let filter = CoordinateFilter {
+            min: Some(Coordinate {
+                latitude: 30.0,
+                longitude: -105.0,
+            }),
+            max: Some(Coordinate {
+                latitude: 35.0,
+                longitude: -100.0,
+            }),
+        };
+        let result = imp
+            .request_restrictions(tonic::Request::new(RestrictionsRequest {
+                filter: Some(filter),
+            }))
+            .await;
+
+        assert!(result.is_ok());
+        let result: RestrictionsResponse = result.unwrap().into_inner();
+        println!("{:?}", result);
+    }
 }

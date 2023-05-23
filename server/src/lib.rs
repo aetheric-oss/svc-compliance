@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 
-use log::warn;
+pub mod config;
+pub mod grpc;
+pub mod region;
 
 /// Tokio signal handler that will wait for a user to press CTRL+C.
 /// This signal handler can be used in our [`tonic::transport::Server`]
@@ -23,5 +25,5 @@ pub async fn shutdown_signal(server: &str) {
     tokio::signal::ctrl_c()
         .await
         .expect("expect tokio signal ctrl-c");
-    warn!("({}) shutdown signal", server);
+    grpc_warn!("({}) shutdown signal", server);
 }

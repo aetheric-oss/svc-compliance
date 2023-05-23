@@ -1,4 +1,6 @@
-use crate::grpc::server::grpc_server::{CoordinateFilter, Waypoint};
+//! Region utility functions
+
+use crate::grpc::server::{CoordinateFilter, Waypoint};
 use regex::Regex;
 
 /// TODO(R4): Security analysis of this dependency
@@ -6,8 +8,17 @@ use regex::Regex;
 ///  (temporary R3 hack)
 use dms_coordinates::{Bearing, DMS};
 
+/// Custom Error type for dms functions
+#[derive(Debug, Clone, Copy)]
+pub enum DmsError {
+    /// Provided DMS string is not the correct format
+    InvalidFormat,
+    /// The provided bearing string is not the correct format
+    InvalidBearing,
+}
+
 /// Converts a string in DMS format (e.g. 51° 30' 0.0" N) to a decimal degree
-pub fn dms_to_double(dms: &str) -> Result<f64, ()> {
+pub fn dms_to_double(dms: &str) -> Result<f64, DmsError> {
     let dms_fmt = r#"(?P<d>\d+)°\s*(?P<m>\d+)'\s*(?P<s>\d+\.\d+)"\s*(?P<b>N|S|E|W)"#;
 
     let re = Regex::new(dms_fmt).unwrap();
@@ -15,7 +26,7 @@ pub fn dms_to_double(dms: &str) -> Result<f64, ()> {
     let Some(cap) = result else {
         region_error!("(dms_to_double) invalid DMS format.");
         region_debug!("(dms_to_double) dms: {}", dms);
-        return Err(());
+        return Err(DmsError::InvalidFormat);
     };
 
     let (deg, min, sec, bearing) = (&cap["d"], &cap["m"], &cap["s"], &cap["b"]);
@@ -28,7 +39,7 @@ pub fn dms_to_double(dms: &str) -> Result<f64, ()> {
         _ => {
             region_error!("(dms_to_double) invalid bearing.");
             region_debug!("(dms_to_double) bearing: {}", bearing);
-            return Err(());
+            return Err(DmsError::InvalidBearing);
         }
     };
 
@@ -49,31 +60,36 @@ struct Entry {
     longitude: String,
 }
 
-pub fn parse_waypoints_file(fname: &str, filter: CoordinateFilter) -> Result<Vec<Waypoint>, ()> {
+/// Custom Error type for waypoint file functions
+#[derive(Debug)]
+pub enum WaypointsFileError {
+    /// Could not open the provided file
+    FileOpenError,
+    /// Could not parse the provided CSV file
+    ParsingError(csv::Error),
+    /// Could not read coordinates from the provided file
+    CoordinateParsingError,
+}
+
+/// Parse the waypoints from the provided file
+/// Returns a vector with all parsed waypoints
+pub fn parse_waypoints_file(
+    fname: &str,
+    filter: CoordinateFilter,
+) -> Result<Vec<Waypoint>, WaypointsFileError> {
     region_info!("(parse_waypoints_file) entry.");
 
     let mut waypoints = Vec::new();
-    let Ok(mut rdr) = csv::Reader::from_path(fname) else {
-        region_error!("(parse_waypoints_file) error opening waypoints file.");
-        return Err(());
-    };
+    let mut rdr = csv::Reader::from_path(fname).map_err(|_| WaypointsFileError::FileOpenError)?;
 
     for result in rdr.deserialize::<Entry>() {
         println!("TEST: {:?}", result);
-        let Ok(entry) = result else {
-            region_error!("(parse_waypoints_file) error parsing waypoints file: {:?}", result.unwrap_err());
-            return Err(());
-        };
+        let entry: Entry = result.map_err(WaypointsFileError::ParsingError)?;
 
-        let Ok(latitude) = dms_to_double(&entry.latitude) else {
-            region_error!("(parse_waypoints_file) error parsing waypoints file.");
-            return Err(());
-        };
-
-        let Ok(longitude) = dms_to_double(&entry.longitude) else {
-            region_error!("(parse_waypoints_file) error parsing waypoints file.");
-            return Err(());
-        };
+        let latitude = dms_to_double(&entry.latitude)
+            .map_err(|_| WaypointsFileError::CoordinateParsingError)?;
+        let longitude = dms_to_double(&entry.longitude)
+            .map_err(|_| WaypointsFileError::CoordinateParsingError)?;
 
         let waypoint = Waypoint {
             identifier: entry.identifier,
@@ -112,7 +128,7 @@ pub fn parse_waypoints_file(fname: &str, filter: CoordinateFilter) -> Result<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::grpc::server::grpc_server::{Coordinate, CoordinateFilter};
+    use crate::grpc::server::Coordinate;
 
     #[test]
     fn ut_dms_to_decimal() {

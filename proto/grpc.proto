@@ -29,7 +29,7 @@ message FlightPlanRequest {
 message FlightPlanResponse {
     // Flight Plan Id
     string flight_plan_id = 1;
-    // JSON data of the flight plan
+    // Status result for submitted
     bool submitted = 2;
     // Optional error or warning message
     optional string result = 3;
@@ -47,7 +47,7 @@ message FlightReleaseRequest {
 message FlightReleaseResponse {
     // Flight Plan Id
     string flight_plan_id = 1;
-    // JSON data of the flight plan
+    // Status result for released
     bool released = 2;
     // Optional error or warning message
     optional string result = 3;
