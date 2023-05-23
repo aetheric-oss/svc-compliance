@@ -11,17 +11,25 @@ license-file.workspace = true
 repository.workspace   = true
 
 [features]
+mock = []
+# Will implement mock functions for the server, only use for tests!
+mock_server      = ["mock"]
 vendored-openssl = ['openssl/vendored']
+# region options, can only activate one
+nl = []
+us = []
 
 [dependencies]
 anyhow          = "1.0"
 cargo-husky     = "1"
+cfg-if          = "1.0"
 chrono          = { version = "0.4", features = ["serde"] }
 config          = "0.13"
 csv             = "1.2"
 dms-coordinates = "1.1"
 dotenv          = "0.15"
 hyper           = "0.14"
+lib-common      = { git = "https://github.com/Arrow-air/lib-common.git", tag = "v0.1.1-develop.2" }
 log             = "0.4"
 openssl         = "0.10"
 prost           = "0.11"
@@ -30,14 +38,10 @@ prost-types     = "0.11"
 regex           = "1.7"
 serde           = { version = "1.0", features = ["derive"] }
 serde_json      = "1.0"
-tokio           = { version = "1.20", features = ["full"] }
+tokio           = { version = "1.28", features = ["full"] }
 tokio-util      = "0.7"
 tonic           = "0.8"
-tonic-health    = "0.7"
-
-[dependencies.lib-common]
-git = "https://github.com/Arrow-air/lib-common"
-tag = "v0.1.0"
+tonic-health    = "0.8"
 
 [dependencies.log4rs]
 features = [
@@ -47,6 +51,9 @@ features = [
   "gzip",
 ]
 version = "1.2"
+
+[dev-dependencies]
+logtest = "2.0"
 
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default

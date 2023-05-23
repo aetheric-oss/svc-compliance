@@ -30,3 +30,4 @@ tftpl
 stuckee
 datetime
 nofly
+logtest
