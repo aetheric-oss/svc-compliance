@@ -2,7 +2,7 @@
 
 <center>
 
-<img src="https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png" style="height:250px" />
+<img src="https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png" />
 
 </center>
 
