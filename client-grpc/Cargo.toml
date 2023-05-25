@@ -19,6 +19,9 @@ test_util = [
   "lib-common/grpc_mock",
   "svc-compliance/mock_server",
 ]
+# region options, can only activate one, used for tests only
+nl = ["svc-compliance?/nl"]
+us = ["svc-compliance?/us"]
 
 [dependencies]
 cfg-if         = "1.0"

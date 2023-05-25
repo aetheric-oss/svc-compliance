@@ -20,7 +20,13 @@ async fn test_server_requests_and_logs() {
         assert!(logger.any(|log| {
             let message = log.args();
             println!("{:?}", message);
-            log.args() == format!("(is_ready MOCK) {} server.", "compliance")
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "nl")] {
+                    log.args() == format!("([nl] is_ready MOCK) {} server.", "compliance")
+                } else {
+                    log.args() == format!("([us] is_ready MOCK) {} server.", "compliance")
+                }
+            }
         }));
     }
 }

@@ -91,7 +91,7 @@ jobs:
           - nl
           - us
     env:
-      PACKAGE_FEATURES: ${{ matrix.region }}
+      PACKAGE_RELEASE_FEATURES: ${{ matrix.region }}
       DOCKER_IMAGE: ghcr.io/${{ github.repository }}
     steps:
       - name: Checkout Code
@@ -122,8 +122,8 @@ jobs:
           tags: |
             type=ref,event=branch,suffix=${{ matrix.region }}
             type=ref,event=pr,suffix=${{ matrix.region }}
-            type=semver,pattern=v{{version}},value=${{ github.ref_name }},suffix=${{ matrix.region }}
-            type=semver,pattern=v{{major}}.{{minor}},value=${{ github.ref_name }},suffix=${{ matrix.region }}
+            type=semver,pattern=v{{version}},value=${{ github.ref_name }},suffix=-${{ matrix.region }}
+            type=semver,pattern=v{{major}}.{{minor}},value=${{ github.ref_name }},suffix=-${{ matrix.region }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3

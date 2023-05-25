@@ -11,13 +11,15 @@ license-file.workspace = true
 repository.workspace   = true
 
 [features]
-mock = []
-# Will implement mock functions for the server, only use for tests!
-mock_server      = ["mock"]
-vendored-openssl = ['openssl/vendored']
+default          = []
+mock             = []
+test_util        = ["mock"]
+vendored-openssl = ["openssl/vendored"]
 # region options, can only activate one
 nl = []
 us = []
+# Will implement mock functions for the server, only use for tests!
+mock_server = ["test_util"]
 
 [dependencies]
 anyhow          = "1.0"

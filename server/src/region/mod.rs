@@ -23,12 +23,18 @@ use std::sync::{Arc, Mutex};
 use tonic::{Request, Response, Status};
 
 /// Generic region struct to be used to implement the region specific traits
-#[derive(Debug, Clone, Copy)]
-pub struct RegionImpl {}
+#[derive(Debug, Clone)]
+pub struct RegionImpl {
+    /// The implemented region short code
+    pub region: String,
+}
 
 /// Interface to regional authorities
 #[tonic::async_trait]
 pub trait RegionInterface {
+    /// Return the region short code of the implementation
+    fn get_region(&self) -> &str;
+
     /// Submit a new flight plan for the region
     fn submit_flight_plan(
         &self,
@@ -135,6 +141,18 @@ mod tests {
     use crate::grpc::server::{Coordinate, CoordinateFilter, FlightRestriction, Waypoint};
     use crate::region::RegionImpl;
 
+    #[test]
+    fn test_region_code() {
+        let region_impl = RegionImpl::default();
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "nl")] {
+                assert_eq!(region_impl.region, "nl");
+            } else {
+                assert_eq!(region_impl.region, "us");
+            }
+        }
+    }
+
     #[tokio::test]
     async fn ut_request_restrictions_coordinate_filter() {
         let filter_min = Coordinate {
@@ -210,7 +228,7 @@ mod tests {
             filter: Some(filter),
         });
 
-        let region = RegionImpl {};
+        let region = RegionImpl::default();
         let result = region.request_restrictions(restrictions.clone(), request);
         let Ok(response) = result else {
             panic!();
@@ -301,7 +319,7 @@ mod tests {
             filter: Some(filter),
         });
 
-        let region = RegionImpl {};
+        let region = RegionImpl::default();
         let result = region.request_waypoints(waypoints.clone(), request);
         let Ok(response) = result else {
             panic!();
