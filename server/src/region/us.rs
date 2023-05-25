@@ -18,10 +18,21 @@ use tonic::{Request, Response, Status};
 // const US_RESTRICTION_REFRESH_INTERVAL_MS: u64 = 30000; // 30s
 // const US_WAYPOINT_REFRESH_INTERVAL_MS: u64 = 60000; // 60s
 
+impl Default for super::RegionImpl {
+    fn default() -> Self {
+        Self {
+            region: String::from("us"),
+        }
+    }
+}
+
 /// Processes for submission to the US authorities
 #[tonic::async_trait]
 impl RegionInterface for super::RegionImpl {
-    #[cfg(not(tarpaulin_include))]
+    fn get_region(&self) -> &str {
+        &self.region
+    }
+
     fn submit_flight_plan(
         &self,
         request: Request<FlightPlanRequest>,
@@ -36,7 +47,6 @@ impl RegionInterface for super::RegionImpl {
         }))
     }
 
-    #[cfg(not(tarpaulin_include))]
     fn request_flight_release(
         &self,
         request: Request<FlightReleaseRequest>,
@@ -51,7 +61,6 @@ impl RegionInterface for super::RegionImpl {
         }))
     }
 
-    #[cfg(not(tarpaulin_include))]
     async fn refresh_restrictions(&self, restrictions: Arc<Mutex<Vec<FlightRestriction>>>) {
         //
         // TODO(R4): This is all currently hardcoded. This should be replaced with a call to
@@ -154,7 +163,6 @@ impl RegionInterface for super::RegionImpl {
         // }
     }
 
-    #[cfg(not(tarpaulin_include))]
     async fn refresh_waypoints(&self, waypoints: Arc<Mutex<Vec<Waypoint>>>) {
         //
         // TODO(R4): This is currently hardcoded. This should be replaced with a call to an API
@@ -198,5 +206,68 @@ impl RegionInterface for super::RegionImpl {
         //         US_WAYPOINT_REFRESH_INTERVAL_MS,
         //     ))
         // }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::region::RegionImpl;
+
+    #[test]
+    fn test_region_code() {
+        let region_impl = RegionImpl::default();
+        assert_eq!(region_impl.region, "us");
+    }
+
+    #[test]
+    fn test_submit_flight_plan() {
+        let region = RegionImpl::default();
+        let result = region.submit_flight_plan(tonic::Request::new(FlightPlanRequest {
+            flight_plan_id: "".to_string(),
+            data: "".to_string(),
+        }));
+
+        assert!(result.is_ok());
+        let result: FlightPlanResponse = result.unwrap().into_inner();
+        println!("{:?}", result);
+        assert_eq!(result.submitted, true);
+    }
+
+    #[test]
+    fn test_request_flight_release() {
+        let region = RegionImpl::default();
+        let result = region.request_flight_release(tonic::Request::new(FlightReleaseRequest {
+            flight_plan_id: "".to_string(),
+            data: "".to_string(),
+        }));
+
+        assert!(result.is_ok());
+        let result: FlightReleaseResponse = result.unwrap().into_inner();
+        println!("{:?}", result);
+        assert_eq!(result.released, true);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_restrictions() {
+        let region = RegionImpl::default();
+        let restrictions = Arc::new(Mutex::new(Vec::new()));
+        region.refresh_restrictions(restrictions.clone()).await;
+        println!("{:?}", restrictions);
+
+        let nofly_restriction = restrictions.lock().unwrap()[0].clone();
+        let tfr_restriction = restrictions.lock().unwrap()[1].clone();
+        assert_eq!(nofly_restriction.identifier, "ARROW-US-NOFLY-ZONE");
+        assert_eq!(tfr_restriction.identifier, "ARROW-US-TFR-ZONE");
+    }
+
+    #[tokio::test]
+    async fn test_refresh_waypoints() {
+        let region = RegionImpl::default();
+        let waypoints = Arc::new(Mutex::new(Vec::new()));
+        region.refresh_waypoints(waypoints.clone()).await;
+        let waypoint = waypoints.lock().unwrap()[0].clone();
+        println!("{:?}", waypoints);
+        assert_eq!(waypoint.latitude, 30.931177107045443);
     }
 }

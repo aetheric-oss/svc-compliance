@@ -39,7 +39,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
         &self,
         request: tonic::Request<Self::ReadyRequest>,
     ) -> Result<tonic::Response<Self::ReadyResponse>, tonic::Status> {
-        grpc_info!("(is_ready) {}.", self.get_name());
+        grpc_info!("(is_ready) {} client.", self.get_name());
         grpc_debug!("(is_ready) request: {:?}", request);
         self.get_client().await?.is_ready(request).await
     }
@@ -185,6 +185,7 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap().into_inner().ready, true);
     }
+
     #[tokio::test]
     async fn test_client_submit_flight_plan() {
         let name = "compliance";
