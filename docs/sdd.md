@@ -1,12 +1,8 @@
+![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+
 # Software Design Document (SDD) - `svc-compliance` 
 
-<center>
-
-<img src="https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png" style="height:250px" />
-
-</center>
-
-## Overview
+## :telescope: Overview
 
 This document details the software implementation of svc-compliance.
 
@@ -17,12 +13,15 @@ This service is responsible for some or all of the following:
 - Validating certification numbers and expiration dates
 - Waypoints/Fixes
 
-Attribute | Description
---- | ---
-Status | Draft
-Stuckee | A.M. Smith [@ServiceDog](https://github.com/servicedog)
+### Metadata
 
-## Related Documents
+| Attribute     | Description                                                       |
+| ------------- |-------------------------------------------------------------------|
+| Maintainer(s) | [Services Team](https://github.com/orgs/Arrow-air/teams/services) |
+| Stuckee       | A.M. Smith [@ServiceDog](https://github.com/servicedog)           |
+| Status        | Draft                                                             |
+
+## :books: Related Documents
 
 Document | Description
 --- | ---
@@ -32,14 +31,14 @@ Document | Description
 [Concept of Operations - `svc-compliance`](./conops.md) | Defines the motivation and duties of this microservice.
 [Interface Control Document (ICD) - `svc-compliance`](./icd.md) | Defines the inputs and outputs of this microservice.
 
-## Module Attributes
+## :dna: Module Attributes
 
 Attribute | Applies | Explanation
 --- | --- | ---
 Safety Critical | N | Flights without approvals will not be permitted to occur.
 Realtime | N | Flight plan submissions and the receipt of approval may occur seconds or minutes apart, does not need to be instantaneous or occur on a precise schedule.
 
-## Logic
+## :gear: Logic
 
 ### Initialization
 
@@ -63,7 +62,7 @@ As a GRPC server, this service awaits requests and executes handlers.
 
 No special cleanup events.
 
-## Interface Handlers
+## :speech_balloon: gRPC Handlers
 
 The following functions are implemented for each region:
 - submit_flight_plan
