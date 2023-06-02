@@ -56,13 +56,66 @@ This service also expects the following other environment variables to be set:
 
 ### Loop
 
-As a GRPC server, this service awaits requests and executes handlers.
+#### GRPC
+
+As a GRPC server, this service awaits requests and executes handlers. See [interface handlers](#speech_balloon-interface-handlers) for more information.
+
+#### Waypoints
+
+This service is responsible for periodically checking with an external database for updates to waypoints.
+
+```mermaid
+
+sequenceDiagram;
+
+participant gis as svc-gis
+participant compliance as svc-compliance
+participant authority as Civil Aviation Authority
+
+alt Loop
+compliance -->> authority: Get waypoints
+authority -->> compliance: Waypoints
+Note over compliance: Detect Changes
+    alt If Waypoints Change
+        compliance -->> gis: update_waypoints(...)
+        compliance -->> gis: delete_waypoints(...) (R4)
+    end
+Note over compliance: Wait N Seconds
+end
+
+```
+
+#### No-Fly Zones
+
+This service is responsible for periodically checking with an external database for updates to no-fly zones.
+
+
+```mermaid
+
+sequenceDiagram;
+
+participant gis as svc-gis
+participant compliance as svc-compliance
+participant authority as Civil Aviation Authority
+
+alt Loop
+compliance -->> authority: Get no-fly zones, NOTAMs
+authority -->> compliance: No-Fly Zones
+Note over compliance: Detect Changes
+    alt If Change
+        compliance -->> gis: update_no_fly_zones(...)
+        compliance -->> gis: delete_no_fly_zones(...) (R4)
+    end
+Note over compliance: Wait N Seconds
+end
+
+```
 
 ### Cleanup
 
 No special cleanup events.
 
-## :speech_balloon: gRPC Handlers
+## :speech_balloon: Interface Handlers
 
 The following functions are implemented for each region:
 - submit_flight_plan
@@ -70,4 +123,4 @@ The following functions are implemented for each region:
 
 Regions may have unique processes and endpoints for performing these tasks.
 
-:warning: In R2 these handlers simply return a "submitted: true" message without connecting to external APIs. This will be updated in later releases, and potentially obscured depending on government requirements.
+:warning: These handlers currently return a "submitted: true" message without connecting to external APIs. This will be updated in later releases, and potentially obscured depending on government requirements. Submitted flight plans are additionally broadcast over an AMQP (RabbitMQ) channel to listeners in R3.

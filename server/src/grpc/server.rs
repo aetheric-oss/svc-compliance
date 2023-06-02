@@ -7,20 +7,23 @@ mod grpc_server {
 }
 
 pub use crate::amqp::init_mq;
+use crate::region::RestrictionDetails;
 pub use grpc_server::rpc_service_server::{RpcService, RpcServiceServer};
-pub use grpc_server::{Coordinate, CoordinateFilter};
 pub use grpc_server::{FlightPlanRequest, FlightPlanResponse};
 pub use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
-pub use grpc_server::{FlightRestriction, RestrictionsRequest, RestrictionsResponse};
 pub use grpc_server::{ReadyRequest, ReadyResponse};
-pub use grpc_server::{Waypoint, WaypointsRequest, WaypointsResponse};
+use lib_common::time::datetime_to_timestamp;
+use svc_gis_client_grpc::client::rpc_service_client::RpcServiceClient as GisClient;
+use svc_gis_client_grpc::NoFlyZone;
+use svc_gis_client_grpc::{Coordinates, UpdateNoFlyZonesRequest, UpdateWaypointsRequest};
 
 use crate::config::Config;
 use crate::region::RegionInterface;
 use crate::shutdown_signal;
 
+use core::fmt;
+use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
@@ -32,12 +35,14 @@ pub struct ServerImpl {
 
     /// Region interface
     pub region: Box<dyn RegionInterface + Send + Sync>,
+}
 
-    /// No Fly Zones and Temporary Flight Restrictions
-    pub restrictions: Arc<Mutex<Vec<FlightRestriction>>>,
-
-    /// Waypoints
-    pub waypoints: Arc<Mutex<Vec<Waypoint>>>,
+impl fmt::Debug for ServerImpl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ServerImpl")
+            .field("region", &"RegionInterface (not printable)")
+            .finish()
+    }
 }
 
 #[cfg(not(feature = "stub_server"))]
@@ -112,31 +117,150 @@ impl RpcService for ServerImpl {
         grpc_debug!("(request_flight_release) request: {:?}", request);
         self.region.request_flight_release(request)
     }
+}
 
-    async fn request_waypoints(
-        &self,
-        request: Request<WaypointsRequest>,
-    ) -> Result<Response<WaypointsResponse>, Status> {
-        grpc_warn!(
-            "([{}] request_waypoints) compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(request_waypoints) request: {:?}", request);
-        self.region
-            .request_waypoints(self.waypoints.clone(), request)
+async fn update_waypoints(host: String, port: u16, waypoints: &HashMap<String, Coordinates>) {
+    let nodes: Vec<svc_gis_client_grpc::client::Waypoint> = waypoints
+        .iter()
+        .map(
+            |(label, coordinates)| svc_gis_client_grpc::client::Waypoint {
+                label: label.clone(),
+                location: Some(*coordinates),
+            },
+        )
+        .collect();
+
+    if nodes.is_empty() {
+        grpc_warn!("(waypoints_loop) no waypoints to update.");
+        return;
     }
 
-    async fn request_restrictions(
-        &self,
-        request: Request<RestrictionsRequest>,
-    ) -> Result<Response<RestrictionsResponse>, Status> {
-        grpc_warn!(
-            "([{}] request_restrictions) compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(request_restrictions) request: {:?}", request);
-        self.region
-            .request_restrictions(self.restrictions.clone(), request)
+    let request = tonic::Request::new(UpdateWaypointsRequest { waypoints: nodes });
+    let address = format!("{}:{}", host, port);
+    let result = GisClient::connect(address).await;
+    let Ok(mut client) = result else {
+        grpc_error!("Failed to connect to gRPC server: {}", result.unwrap_err());
+        return;
+    };
+
+    match client.update_waypoints(request).await {
+        Ok(response) => {
+            grpc_info!("RESPONSE={:?}", response);
+        }
+        Err(e) => {
+            grpc_error!("ERROR={:?}", e);
+        }
+    }
+}
+
+/// Periodically pulls down waypoints from the regional interface and
+///  pushes them to the GIS microservice
+pub async fn waypoints_loop(config: Config, region: Box<dyn RegionInterface + Send + Sync>) {
+    let host = config.gis_host_grpc;
+    let port = config.gis_port_grpc;
+
+    grpc_info!(
+        "(waypoints_loop) Starting loop with interval: {} seconds.",
+        config.interval_seconds_refresh_waypoints
+    );
+
+    let mut cache: HashMap<String, Coordinates> = HashMap::new();
+
+    loop {
+        // Pull down waypoints from regional interface
+        region.acquire_waypoints(&mut cache).await;
+        update_waypoints(host.clone(), port, &cache).await;
+        std::thread::sleep(std::time::Duration::from_secs(
+            config.interval_seconds_refresh_waypoints as u64,
+        ));
+    }
+}
+
+async fn update_restrictions(
+    host: String,
+    port: u16,
+    restrictions: &HashMap<String, RestrictionDetails>,
+) {
+    let mut zones: Vec<NoFlyZone> = vec![];
+    for (label, details) in restrictions.iter() {
+        let time_start = match details.timestamp_start {
+            Some(t) => match datetime_to_timestamp(&t) {
+                Some(t) => Some(t),
+                _ => {
+                    grpc_error!("(restrictions_loop) could not convert timestamp for zone with label {label}.");
+                    continue;
+                }
+            },
+            None => None,
+        };
+
+        let time_end = match details.timestamp_end {
+            Some(t) => match datetime_to_timestamp(&t) {
+                Some(t) => Some(t),
+                _ => {
+                    grpc_error!("(restrictions_loop) could not convert timestamp for zone with label {label}.");
+                    continue;
+                }
+            },
+            None => None,
+        };
+
+        zones.push(NoFlyZone {
+            label: label.clone(),
+            vertices: details
+                .vertices
+                .iter()
+                .map(|v| Coordinates {
+                    latitude: v.latitude,
+                    longitude: v.longitude,
+                })
+                .collect(),
+            time_start,
+            time_end,
+        });
+    }
+
+    if zones.is_empty() {
+        grpc_warn!("(restrictions_loop) no restrictions to update.");
+        return;
+    }
+
+    let request = tonic::Request::new(UpdateNoFlyZonesRequest { zones });
+    let address = format!("{}:{}", host, port);
+    let result = GisClient::connect(address).await;
+    let Ok(mut client) = result else {
+        grpc_error!("Failed to connect to gRPC server: {}", result.unwrap_err());
+        return;
+    };
+
+    match client.update_no_fly_zones(request).await {
+        Ok(response) => {
+            grpc_info!("RESPONSE={:?}", response);
+        }
+        Err(e) => {
+            grpc_error!("ERROR={:?}", e);
+        }
+    }
+}
+
+/// Periodically pulls down restrictions from the regional interface and
+///  pushes them to the GIS microservice
+pub async fn restrictions_loop(config: Config, region: Box<dyn RegionInterface + Send + Sync>) {
+    let host = config.gis_host_grpc;
+    let port = config.gis_port_grpc;
+    let mut cache: HashMap<String, RestrictionDetails> = HashMap::new();
+
+    grpc_info!(
+        "(restrictions_loop) Starting loop with interval: {} seconds.",
+        config.interval_seconds_refresh_zones
+    );
+
+    loop {
+        region.acquire_restrictions(&mut cache).await;
+        update_restrictions(host.clone(), port, &cache).await;
+        std::thread::sleep(std::time::Duration::from_secs(
+            config.interval_seconds_refresh_zones as u64,
+        ));
     }
 }
 
@@ -174,15 +298,17 @@ pub async fn grpc_server(config: Config) {
     let imp = ServerImpl {
         mq_channel: Some(mq_channel),
         region: Box::<crate::region::RegionImpl>::default(),
-        restrictions: Arc::new(Mutex::new(Vec::new())),
-        waypoints: Arc::new(Mutex::new(Vec::new())),
     };
 
-    // TODO(R4): Move these to a thread and allow to loop
-    imp.region
-        .refresh_restrictions(imp.restrictions.clone())
-        .await;
-    imp.region.refresh_waypoints(imp.waypoints.clone()).await;
+    tokio::spawn(restrictions_loop(
+        config.clone(),
+        Box::<crate::region::RegionImpl>::default(),
+    ));
+
+    tokio::spawn(waypoints_loop(
+        config.clone(),
+        Box::<crate::region::RegionImpl>::default(),
+    ));
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
@@ -257,34 +383,6 @@ impl RpcService for ServerImpl {
             result: None,
         }))
     }
-
-    async fn request_waypoints(
-        &self,
-        request: Request<WaypointsRequest>,
-    ) -> Result<Response<WaypointsResponse>, Status> {
-        grpc_warn!(
-            "([{}] request_waypoints MOCK) compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(request_waypoints MOCK) request: {:?}", request);
-        Ok(tonic::Response::new(WaypointsResponse {
-            waypoints: vec![],
-        }))
-    }
-
-    async fn request_restrictions(
-        &self,
-        request: Request<RestrictionsRequest>,
-    ) -> Result<Response<RestrictionsResponse>, Status> {
-        grpc_warn!(
-            "([{}] request_restrictions MOCK) compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(request_restrictions MOCK) request: {:?}", request);
-        Ok(tonic::Response::new(RestrictionsResponse {
-            restrictions: vec![],
-        }))
-    }
 }
 
 #[cfg(test)]
@@ -294,14 +392,9 @@ mod tests {
 
     fn get_server_impl() -> ServerImpl {
         let region = Box::<crate::region::RegionImpl>::default();
-        let restrictions = Arc::new(Mutex::new(Vec::new()));
-        let waypoints = Arc::new(Mutex::new(Vec::new()));
-
         ServerImpl {
             mq_channel: None,
             region,
-            restrictions,
-            waypoints,
         }
     }
 
@@ -356,59 +449,5 @@ mod tests {
         let result: FlightReleaseResponse = result.unwrap().into_inner();
         println!("{:?}", result);
         assert_eq!(result.released, true);
-    }
-
-    #[tokio::test]
-    async fn test_grpc_request_waypoints() {
-        let imp = get_server_impl();
-
-        let filter = CoordinateFilter {
-            min: Some(Coordinate {
-                latitude: 30.0,
-                longitude: -105.0,
-            }),
-            max: Some(Coordinate {
-                latitude: 35.0,
-                longitude: -100.0,
-            }),
-        };
-        let result = imp
-            .request_waypoints(Request::new(WaypointsRequest {
-                filter: Some(filter),
-            }))
-            .await;
-
-        assert!(result.is_ok());
-        let result: WaypointsResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
-        // Would not have loaded any waypoints in this case
-        assert_eq!(result.waypoints.len(), 0);
-    }
-
-    #[tokio::test]
-    async fn test_grpc_request_restrictions() {
-        let imp = get_server_impl();
-
-        let filter = CoordinateFilter {
-            min: Some(Coordinate {
-                latitude: 30.0,
-                longitude: -105.0,
-            }),
-            max: Some(Coordinate {
-                latitude: 35.0,
-                longitude: -100.0,
-            }),
-        };
-        let result = imp
-            .request_restrictions(tonic::Request::new(RestrictionsRequest {
-                filter: Some(filter),
-            }))
-            .await;
-
-        assert!(result.is_ok());
-        let result: RestrictionsResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
-        // Would not have loaded any restrictions in this case
-        assert_eq!(result.restrictions.len(), 0);
     }
 }

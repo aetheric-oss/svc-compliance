@@ -19,7 +19,6 @@ pub mod client {
     cfg_if::cfg_if! {
         if #[cfg(feature = "stub_backends")] {
             use svc_compliance::grpc::server::{RpcServiceServer, ServerImpl};
-            use std::sync::{Arc, Mutex};
 
             #[tonic::async_trait]
             impl lib_common::grpc::ClientConnect<RpcServiceClient<Channel>>
@@ -32,14 +31,10 @@ pub mod client {
                     let (client, server) = tokio::io::duplex(1024);
 
                     let region = Box::<svc_compliance::region::RegionImpl>::default();
-                    let restrictions = Arc::new(Mutex::new(Vec::new()));
-                    let waypoints = Arc::new(Mutex::new(Vec::new()));
 
                     let grpc_service = ServerImpl {
                         mq_channel: None,
                         region,
-                        restrictions,
-                        waypoints
                     };
 
                     lib_common::grpc::mock::start_mock_server(
@@ -115,24 +110,6 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
             .request_flight_release(request)
             .await
     }
-
-    async fn request_waypoints(
-        &self,
-        request: WaypointsRequest,
-    ) -> Result<tonic::Response<WaypointsResponse>, tonic::Status> {
-        grpc_warn!("(request_waypoints) {} client.", self.get_name());
-        grpc_debug!("(request_waypoints) request: {:?}", request);
-        self.get_client().await?.request_waypoints(request).await
-    }
-
-    async fn request_restrictions(
-        &self,
-        request: RestrictionsRequest,
-    ) -> Result<tonic::Response<RestrictionsResponse>, tonic::Status> {
-        grpc_warn!("(request_restrictions) {} client.", self.get_name());
-        grpc_debug!("(request_restrictions) request: {:?}", request);
-        self.get_client().await?.request_restrictions(request).await
-    }
 }
 
 #[cfg(any(feature = "stub_client"))]
@@ -172,28 +149,6 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
             flight_plan_id: request.flight_plan_id,
             released: true,
             result: None,
-        }))
-    }
-
-    async fn request_waypoints(
-        &self,
-        request: WaypointsRequest,
-    ) -> Result<tonic::Response<WaypointsResponse>, tonic::Status> {
-        grpc_warn!("(request_waypoints MOCK) {} client.", self.get_name());
-        grpc_debug!("(request_waypoints MOCK) request: {:?}", request);
-        Ok(tonic::Response::new(WaypointsResponse {
-            waypoints: vec![],
-        }))
-    }
-
-    async fn request_restrictions(
-        &self,
-        request: RestrictionsRequest,
-    ) -> Result<tonic::Response<RestrictionsResponse>, tonic::Status> {
-        grpc_warn!("(request_restrictions MOCK) {} client.", self.get_name());
-        grpc_debug!("(request_restrictions MOCK) request: {:?}", request);
-        Ok(tonic::Response::new(RestrictionsResponse {
-            restrictions: vec![],
         }))
     }
 }
@@ -277,67 +232,5 @@ mod tests {
         let result: FlightReleaseResponse = result.unwrap().into_inner();
         println!("{:?}", result);
         assert_eq!(result.released, true);
-    }
-
-    #[tokio::test]
-    async fn test_grpc_request_waypoints() {
-        let name = "compliance";
-        let (server_host, server_port) =
-            lib_common::grpc::get_endpoint_from_env("GRPC_HOST", "GRPC_PORT");
-
-        let client: GrpcClient<RpcServiceClient<Channel>> =
-            GrpcClient::new_client(&server_host, server_port, name);
-        assert_eq!(client.get_name(), name);
-
-        let filter = CoordinateFilter {
-            min: Some(Coordinate {
-                latitude: 30.0,
-                longitude: -105.0,
-            }),
-            max: Some(Coordinate {
-                latitude: 35.0,
-                longitude: -100.0,
-            }),
-        };
-        let result = client
-            .request_waypoints(WaypointsRequest {
-                filter: Some(filter),
-            })
-            .await;
-
-        assert!(result.is_ok());
-        let result: WaypointsResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
-    }
-
-    #[tokio::test]
-    async fn test_grpc_request_restrictions() {
-        let name = "compliance";
-        let (server_host, server_port) =
-            lib_common::grpc::get_endpoint_from_env("GRPC_HOST", "GRPC_PORT");
-
-        let client: GrpcClient<RpcServiceClient<Channel>> =
-            GrpcClient::new_client(&server_host, server_port, name);
-        assert_eq!(client.get_name(), name);
-
-        let filter = CoordinateFilter {
-            min: Some(Coordinate {
-                latitude: 30.0,
-                longitude: -105.0,
-            }),
-            max: Some(Coordinate {
-                latitude: 35.0,
-                longitude: -100.0,
-            }),
-        };
-        let result = client
-            .request_restrictions(RestrictionsRequest {
-                filter: Some(filter),
-            })
-            .await;
-
-        assert!(result.is_ok());
-        let result: RestrictionsResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
     }
 }

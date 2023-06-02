@@ -8,9 +8,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server_config = tonic_build::configure()
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
-        .type_attribute("Coordinate", "#[derive(Copy)]")
+        .type_attribute("Coordinates", "#[derive(Copy)]")
         .type_attribute("RestrictionsRequest", "#[derive(Copy)]")
-        .type_attribute("CoordinateFilter", "#[derive(Copy)]")
         .type_attribute("WaypointsRequest", "#[derive(Copy)]")
         .type_attribute("FlightPlanRequest", "#[derive(serde::Serialize)]");
 

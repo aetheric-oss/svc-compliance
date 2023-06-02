@@ -19,7 +19,6 @@ fn get_log_string(function: &str, name: &str) -> String {
 #[tokio::test]
 async fn test_server_requests_and_logs() {
     use logtest::Logger;
-    use std::sync::{Arc, Mutex};
     use svc_compliance::grpc::server::*;
 
     let name = "compliance";
@@ -32,8 +31,6 @@ async fn test_server_requests_and_logs() {
         let imp = ServerImpl {
             mq_channel: None,
             region: Box::<svc_compliance::region::RegionImpl>::default(),
-            restrictions: Arc::new(Mutex::new(Vec::new())),
-            waypoints: Arc::new(Mutex::new(Vec::new())),
         };
 
         let result = imp.is_ready(tonic::Request::new(ReadyRequest {})).await;

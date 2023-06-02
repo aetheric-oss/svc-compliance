@@ -1,12 +1,19 @@
 //! Region utility functions
 
-use crate::grpc::server::{CoordinateFilter, Waypoint};
 use regex::Regex;
 
 /// TODO(R4): Security analysis of this dependency
 ///  Currently using this to read and convert waypoints file
 ///  (temporary R3 hack)
 use dms_coordinates::{Bearing, DMS};
+use svc_gis_client_grpc::Coordinates;
+
+/// Filter for coordinates
+#[derive(Debug, Copy, Clone)]
+pub struct CoordinateFilter {
+    min: Option<Coordinates>,
+    max: Option<Coordinates>,
+}
 
 /// Custom Error type for dms functions
 #[derive(Debug, Clone, Copy)]
@@ -53,82 +60,9 @@ pub fn dms_to_double(dms: &str) -> Result<f64, DmsError> {
     Ok(wp.to_decimal_degrees())
 }
 
-#[derive(Debug, serde::Deserialize)]
-struct Entry {
-    identifier: String,
-    latitude: String,
-    longitude: String,
-}
-
-/// Custom Error type for waypoint file functions
-#[derive(Debug)]
-pub enum WaypointsFileError {
-    /// Could not open the provided file
-    FileOpenError,
-    /// Could not parse the provided CSV file
-    ParsingError(csv::Error),
-    /// Could not read coordinates from the provided file
-    CoordinateParsingError,
-}
-
-/// Parse the waypoints from the provided file
-/// Returns a vector with all parsed waypoints
-pub fn parse_waypoints_file(
-    fname: &str,
-    filter: CoordinateFilter,
-) -> Result<Vec<Waypoint>, WaypointsFileError> {
-    region_info!("(parse_waypoints_file) entry.");
-
-    let mut waypoints = Vec::new();
-    let mut rdr = csv::Reader::from_path(fname).map_err(|_| WaypointsFileError::FileOpenError)?;
-
-    for result in rdr.deserialize::<Entry>() {
-        println!("TEST: {:?}", result);
-        let entry: Entry = result.map_err(WaypointsFileError::ParsingError)?;
-
-        let latitude = dms_to_double(&entry.latitude)
-            .map_err(|_| WaypointsFileError::CoordinateParsingError)?;
-        let longitude = dms_to_double(&entry.longitude)
-            .map_err(|_| WaypointsFileError::CoordinateParsingError)?;
-
-        let waypoint = Waypoint {
-            identifier: entry.identifier,
-            latitude,
-            longitude,
-        };
-
-        //
-        // Apply Filter
-        //
-        if let Some(min) = filter.min {
-            if waypoint.latitude < min.latitude || waypoint.longitude < min.longitude {
-                continue;
-            }
-        };
-
-        if let Some(max) = filter.max {
-            if waypoint.latitude > max.latitude || waypoint.longitude > max.longitude {
-                continue;
-            }
-        };
-
-        region_debug!(
-            "Waypoint {{ identifier: {:?}.to_string(), latitude: {:.4}, longitude: {:.4} }},",
-            waypoint.identifier,
-            waypoint.latitude,
-            waypoint.longitude
-        );
-
-        waypoints.push(waypoint);
-    }
-
-    Ok(waypoints)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::grpc::server::Coordinate;
 
     #[test]
     fn ut_dms_to_decimal() {
@@ -152,99 +86,5 @@ mod tests {
         let expected = -8.886111;
         let result = dms_to_double(dms).unwrap();
         assert!((result - expected).abs() < tolerance);
-    }
-
-    #[test]
-    fn ut_parse_waypoints_file() {
-        let fname = "/tmp/waypoints.csv";
-        let waypoints = vec![
-            (
-                "JFK",
-                r#"40°38'0.0"N"#,
-                r#"73°47'0.0"W"#,
-                40.633333,
-                -73.783333,
-            ),
-            (
-                "LAX",
-                r#"33°56'0.0"N"#,
-                r#"118°24'0.0"W"#,
-                33.933333,
-                -118.4,
-            ),
-            (
-                "SFO",
-                r#"37°37'0.0"N"#,
-                r#"122°23'0.0"W"#,
-                37.616667,
-                -122.383333,
-            ),
-            (
-                "ORD",
-                r#"41°59'0.0"N"#,
-                r#"87°53'0.0"W"#,
-                41.983333,
-                -87.883333,
-            ),
-        ];
-
-        let mut data = "identifier,latitude,longitude\n".to_string();
-        for w in &waypoints {
-            data.push_str(&format!("{},{},{}\n", w.0, w.1, w.2));
-        }
-        let _ = std::fs::write(fname, data).unwrap();
-
-        // Test no filter
-        let results = parse_waypoints_file(
-            fname,
-            CoordinateFilter {
-                min: None,
-                max: None,
-            },
-        )
-        .unwrap();
-        assert_eq!(results.len(), waypoints.len());
-
-        // Test Filter
-        let filter = CoordinateFilter {
-            min: Some(Coordinate {
-                latitude: 34.0,
-                longitude: -120.0,
-            }),
-            max: Some(Coordinate {
-                latitude: 41.0,
-                longitude: 0.0,
-            }),
-        };
-
-        let results = parse_waypoints_file(fname, filter).unwrap();
-        assert_eq!(results.len(), 1);
-        assert!(results[0].identifier == "JFK");
-    }
-
-    #[test]
-    fn ut_parse_waypoints_file_invalid() {
-        assert!(parse_waypoints_file(
-            "dne.csv",
-            CoordinateFilter {
-                min: None,
-                max: None,
-            }
-        )
-        .is_err());
-
-        let fname = "/tmp/waypoints_invalid.csv";
-        let mut data = "identifier,latitude,longitude\n".to_string();
-        // improperly formatted coordinates
-        data.push_str("JFK,40°38'0.0N,73°470.0\"W");
-        let _ = std::fs::write(fname, data).unwrap();
-        assert!(parse_waypoints_file(
-            fname,
-            CoordinateFilter {
-                min: None,
-                max: None,
-            }
-        )
-        .is_err());
     }
 }
