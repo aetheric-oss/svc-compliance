@@ -1,6 +1,10 @@
 //! Integration Tests
 
 fn get_log_string(function: &str, name: &str) -> String {
+    #[cfg(feature = "stub_client")]
+    return format!("({} MOCK) {} client.", function, name);
+
+    #[cfg(not(feature = "stub_client"))]
     cfg_if::cfg_if! {
         if #[cfg(feature = "nl")] {
             let lang = "nl";
@@ -8,9 +12,6 @@ fn get_log_string(function: &str, name: &str) -> String {
             let lang = "us";
         }
     }
-
-    #[cfg(feature = "stub_client")]
-    return format!("({} MOCK) {} client.", function, name);
 
     #[cfg(not(feature = "stub_client"))]
     cfg_if::cfg_if! {

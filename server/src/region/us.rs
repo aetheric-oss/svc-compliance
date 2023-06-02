@@ -1,22 +1,15 @@
 //! Region implementation for the United States (US)
 
 use crate::grpc::server::{
-    Coordinate, FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
-    FlightRestriction, Waypoint,
+    FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
 };
 
 use crate::region::RegionInterface;
+use crate::region::RestrictionDetails;
 use chrono::{Duration, Utc};
-use lib_common::time::datetime_to_timestamp;
-use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use svc_gis_client_grpc::Coordinates;
 use tonic::{Request, Response, Status};
-
-//
-// TODO(R4): Refresh intervals for receiving data from external sources
-// NOTE: These may be updated to minutes or hours in the future
-//
-// const US_RESTRICTION_REFRESH_INTERVAL_MS: u64 = 30000; // 30s
-// const US_WAYPOINT_REFRESH_INTERVAL_MS: u64 = 60000; // 60s
 
 impl Default for super::RegionImpl {
     fn default() -> Self {
@@ -61,151 +54,112 @@ impl RegionInterface for super::RegionImpl {
         }))
     }
 
-    async fn refresh_restrictions(&self, restrictions: Arc<Mutex<Vec<FlightRestriction>>>) {
+    async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>) {
         //
-        // TODO(R4): This is all currently hardcoded. This should be replaced with a call to
+        // TODO(R4): This is currently hardcoded. This should be replaced with a call to
         //  an API.
-        // let response = hyper::request::get("https://www.caa.api.com/no-fly").unwrap();
-        // etc.
+        //
+        let mut from_remote: HashMap<String, RestrictionDetails> = HashMap::new();
 
-        let mut tmp = vec![];
+        let vertices = vec![
+            (30.9310, -104.0424),
+            (30.9316, -104.0399),
+            (30.9301, -104.039),
+            (30.9299, -104.0405),
+            (30.9310, -104.0424),
+        ];
 
-        // No Fly Zone
-        {
-            let vertices = vec![
-                (30.93212056685634, -104.04716408989421),
-                (30.931361203527537, -104.04286047256427),
-                (30.931692016016083, -104.04203656211823),
-                (30.933255841376866, -104.03999431601257),
-                (30.931902532458363, -104.03988037095085),
-                (30.932601744457997, -104.03746122964117),
-                (30.93524817798048, -104.03942459070413),
-                (30.934158036680692, -104.04652424454781),
-            ];
-
-            let vertices = vertices
-                .iter()
-                .map(|(lat, lon)| Coordinate {
-                    latitude: *lat,
-                    longitude: *lon,
-                })
-                .collect();
-
-            tmp.push(FlightRestriction {
-                identifier: "ARROW-US-NOFLY-ZONE".to_string(),
-                vertices,
-                altitude_meters_min: 0,
-                altitude_meters_max: 6000,
-                timestamp_end: None,
-                timestamp_start: None,
-                restriction_type: "no-fly".to_string(),
-                reason: "Residential.".to_string(),
-            });
-        }
-
-        // Temporary Flight Restriction
-        {
-            let vertices = vec![
-                (30.93109003018109, -104.04248469001575),
-                (30.93161918826889, -104.0399078085524),
-                (30.930125481322523, -104.03908789172316),
-                (30.929937929025687, -104.04051688962555),
-            ];
-
-            let vertices = vertices
-                .iter()
-                .map(|(lat, lon)| Coordinate {
-                    latitude: *lat,
-                    longitude: *lon,
-                })
-                .collect();
-
-            let now = Utc::now();
-            let until = now + Duration::days(1);
-            let Some(now) = datetime_to_timestamp(&now) else {
-                region_error!("([us] refresh_restrictions) Could not convert timestamp.");
-                return;
-            };
-
-            let Some(until) = datetime_to_timestamp(&until) else {
-                region_error!("([us] refresh_restrictions) Could not convert timestamp.");
-                return;
-            };
-
-            tmp.push(FlightRestriction {
-                identifier: "ARROW-US-TFR-ZONE".to_string(),
-                vertices,
-                altitude_meters_min: 0,
-                altitude_meters_max: 6000,
-                timestamp_end: Some(now),
-                timestamp_start: Some(until),
-                restriction_type: "TFR".to_string(),
-                reason: "Purposeful no-fly for testing.".to_string(),
-            });
-        }
-
-        let n_items = tmp.len();
-
-        // TODO(R4): When this is on a separate thread, allow to loop
-        // loop {
-        {
-            *restrictions.lock().unwrap() = tmp.clone();
-        }
-
-        region_info!(
-            "([us] refresh_restrictions) refreshed restrictions, found {}.",
-            n_items
+        from_remote.insert(
+            "ARROW-USA-TFR-ZONE".to_string(),
+            RestrictionDetails {
+                vertices: vertices
+                    .into_iter()
+                    .map(|(latitude, longitude)| Coordinates {
+                        latitude,
+                        longitude,
+                    })
+                    .collect(),
+                // altitude_meters_min: 0,
+                // altitude_meters_max: 2000,
+                timestamp_end: Some(Utc::now() + Duration::hours(1)),
+                timestamp_start: Some(Utc::now()),
+            },
         );
 
-        //     std::thread::sleep(std::time::Duration::from_millis(
-        //         US_RESTRICTION_REFRESH_INTERVAL_MS,
-        //     ));
-        // }
+        let vertices = vec![
+            (30.9321, -104.0471),
+            (30.9313, -104.0428),
+            (30.9316, -104.042),
+            (30.9332, -104.0399),
+            (30.9319, -104.0398),
+            (30.9326, -104.0374),
+            (30.9352, -104.0394),
+            (30.9341, -104.0465),
+            (30.9321, -104.0471),
+        ];
+
+        from_remote.insert(
+            "ARROW-USA-NOFLY-ZONE".to_string(),
+            RestrictionDetails {
+                vertices: vertices
+                    .into_iter()
+                    .map(|(latitude, longitude)| Coordinates {
+                        latitude,
+                        longitude,
+                    })
+                    .collect(),
+                // altitude_meters_min: 0,
+                // altitude_meters_max: 6000,
+                timestamp_end: None,
+                timestamp_start: None,
+            },
+        );
+
+        //
+        // END HARDCODE
+        //
+
+        restrictions.retain(|k, _| from_remote.contains_key(k));
+        for (label, details) in from_remote.into_iter() {
+            restrictions.insert(label, details);
+        }
     }
 
-    async fn refresh_waypoints(&self, waypoints: Arc<Mutex<Vec<Waypoint>>>) {
+    async fn acquire_waypoints(&self, waypoints: &mut HashMap<String, Coordinates>) {
         //
         // TODO(R4): This is currently hardcoded. This should be replaced with a call to an API
         //
 
-        // West Texas Hardcode
-        let tmp: Vec<(f64, f64)> = vec![
+        // West TX
+        let from_remote: Vec<(f32, f32)> = vec![
             // Ideal waypoint around hardcoded flight restriction
-            (30.931177107045443, -104.0428517004023),
+            (30.9311, -104.0428),
             // waypoint within the hardcoded flight restriction
-            (30.930882385083812, -104.04126652786576),
+            (30.9308, -104.0412),
         ];
 
-        let mut count = 0;
-        let tmp: Vec<Waypoint> = tmp
-            .iter()
-            .map(|(lat, lon)| {
-                count += 1;
-                Waypoint {
-                    identifier: format!("ARROW-WAY-{}", count),
-                    latitude: *lat,
-                    longitude: *lon,
-                }
+        let from_remote: HashMap<String, Coordinates> = from_remote
+            .into_iter()
+            .enumerate()
+            .map(|(i, (longitude, latitude))| {
+                (
+                    format!("ARROW-WEG-{}", i),
+                    Coordinates {
+                        latitude,
+                        longitude,
+                    },
+                )
             })
             .collect();
 
-        let n_items = tmp.len();
+        //
+        // END HARDCODE
+        //
 
-        // TODO(R4): When this is on a separate thread, allow to loop
-        // loop {
-        {
-            *waypoints.lock().unwrap() = tmp;
+        waypoints.retain(|k, _| from_remote.contains_key(k));
+        for (label, details) in from_remote.into_iter() {
+            waypoints.insert(label, details);
         }
-
-        region_info!(
-            "([us] refresh_waypoints) waypoints refreshed, found: {}",
-            n_items
-        );
-
-        //     std::thread::sleep(std::time::Duration::from_millis(
-        //         US_WAYPOINT_REFRESH_INTERVAL_MS,
-        //     ))
-        // }
     }
 }
 
@@ -249,25 +203,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_refresh_restrictions() {
+    async fn test_acquire_restrictions() {
         let region = RegionImpl::default();
-        let restrictions = Arc::new(Mutex::new(Vec::new()));
-        region.refresh_restrictions(restrictions.clone()).await;
-        println!("{:?}", restrictions);
-
-        let nofly_restriction = restrictions.lock().unwrap()[0].clone();
-        let tfr_restriction = restrictions.lock().unwrap()[1].clone();
-        assert_eq!(nofly_restriction.identifier, "ARROW-US-NOFLY-ZONE");
-        assert_eq!(tfr_restriction.identifier, "ARROW-US-TFR-ZONE");
+        let mut cache = HashMap::<String, RestrictionDetails>::new();
+        region.acquire_restrictions(&mut cache).await;
+        println!("{:?}", cache);
+        assert!(cache.keys().len() > 0);
     }
 
     #[tokio::test]
     async fn test_refresh_waypoints() {
         let region = RegionImpl::default();
-        let waypoints = Arc::new(Mutex::new(Vec::new()));
-        region.refresh_waypoints(waypoints.clone()).await;
-        let waypoint = waypoints.lock().unwrap()[0].clone();
-        println!("{:?}", waypoints);
-        assert_eq!(waypoint.latitude, 30.931177107045443);
+        let mut cache = HashMap::<String, Coordinates>::new();
+        region.acquire_waypoints(&mut cache).await;
+        assert!(cache.keys().len() > 0);
     }
 }

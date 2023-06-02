@@ -2,8 +2,7 @@
 //!
 use lib_common::grpc::get_endpoint_from_env;
 use svc_compliance_client_grpc::client::{
-    Coordinate, CoordinateFilter, FlightPlanRequest, FlightReleaseRequest, ReadyRequest,
-    RestrictionsRequest, RpcServiceClient, WaypointsRequest,
+    FlightPlanRequest, FlightReleaseRequest, ReadyRequest, RpcServiceClient,
 };
 use svc_compliance_client_grpc::service::Client as ServiceClient;
 use svc_compliance_client_grpc::{Client, GrpcClient};
@@ -19,17 +18,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "NOTE: Ensure the server is running on {} or this example will fail.",
         connection.get_address()
     );
-
-    let filter = CoordinateFilter {
-        min: Some(Coordinate {
-            latitude: 30.0,
-            longitude: -105.0,
-        }),
-        max: Some(Coordinate {
-            latitude: 35.0,
-            longitude: -100.0,
-        }),
-    };
 
     let response = connection.is_ready(ReadyRequest {}).await?;
 
@@ -53,21 +41,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "request_flight_release RESPONSE={:?}",
         response.into_inner()
     );
-
-    let response = connection
-        .request_waypoints(WaypointsRequest {
-            filter: Some(filter),
-        })
-        .await?;
-    println!("request_waypoints RESPONSE={:?}", response.into_inner());
-
-    let response = connection
-        .request_restrictions(RestrictionsRequest {
-            filter: Some(filter),
-        })
-        .await?;
-
-    println!("request_restrictions RESPONSE={:?}", response.into_inner());
 
     Ok(())
 }

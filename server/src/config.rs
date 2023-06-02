@@ -13,6 +13,19 @@ use serde::Deserialize;
 pub struct Config {
     /// port to be used for gRPC server
     pub docker_port_grpc: u16,
+
+    /// svc-gis hostname
+    pub gis_host_grpc: String,
+
+    /// svc-gis port
+    pub gis_port_grpc: u16,
+
+    /// interval in seconds to refresh no-fly zones
+    pub interval_seconds_refresh_zones: u16,
+
+    /// interval in seconds to refresh waypoints
+    pub interval_seconds_refresh_waypoints: u16,
+
     /// path to log configuration YAML file
     pub log_config: String,
     /// AMQP Settings
@@ -31,6 +44,10 @@ impl Config {
         log::warn!("Creating Config object with default values.");
         Config {
             docker_port_grpc: 50051,
+            gis_host_grpc: String::from("svc-gis"),
+            gis_port_grpc: 50008,
+            interval_seconds_refresh_zones: 30,
+            interval_seconds_refresh_waypoints: 30,
             log_config: String::from("./log4rs.yaml"),
             amqp: deadpool_lapin::Config {
                 url: None,
