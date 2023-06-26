@@ -1,33 +1,32 @@
+![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+
 # Concept of Operations - `svc-compliance`
 
-<center>
+:construction: This document is incomplete and scheduled for a later release implementation. :construction: 
 
-<img src="https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png" />
+### Metadata
 
-</center>
+| Attribute     | Description                                                       |
+| ------------- |-------------------------------------------------------------------|
+| Maintainer(s) | [Services Team](https://github.com/orgs/Arrow-air/teams/services) |
+| Stuckee       | A.M. Smith [@ServiceDog](https://github.com/servicedog)           |
+| Status        | Draft                                                             |
 
-Attribute | Description
---- | ---
-Maintainer | [@Arrow-air/services](https://github.com/orgs/Arrow-air/teams)
-Status | Draft
-
-:construction: This document is incomplete and scheduled for release 3 implementation. :construction: 
-
-## Overview
+## :telescope: Overview
 
 This service is responsible for all communications with the regional aviation authority.
 
-## Related Documents
+## :books: Related Documents
 
 Document | Description
 --- | ---
 [High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
-[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices.
+[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md) | Interfaces and frameworks common to all Arrow microservices.
 [Requirements - `svc-compliance`](https://nocodb.arrowair.com/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b) | Requirements and user stories for this microservice.
 [Interface Control Document (ICD) - `svc-compliance`](./icd.md) | Defines the inputs and outputs of this microservice.
 [Software Design Document (SDD) - `svc-compliance`](./sdd.md) | Specifies the internal activity of this microservice.
 
-## Motivation
+## :raised_hands: Motivation
 
 Our network may be able to provide the following services for asset owners:
 - Submitting flight plans to the regional aviation authority
