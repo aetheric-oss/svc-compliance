@@ -1,16 +1,25 @@
 //! Integration Tests
 
-fn get_log_string(name: &str) -> String {
-    #[cfg(not(any(feature = "mock_client")))]
+fn get_log_string(function: &str, name: &str) -> String {
     cfg_if::cfg_if! {
         if #[cfg(feature = "nl")] {
-            return format!("([nl] is_ready MOCK) {} server.", name);
+            let lang = "nl";
         } else {
-            return format!("([us] is_ready MOCK) {} server.", name);
+            let lang = "us";
         }
     }
-    #[cfg(any(feature = "mock_client"))]
-    return format!("(is_ready MOCK) {} client.", name);
+
+    #[cfg(feature = "stub_client")]
+    return format!("({} MOCK) {} client.", function, name);
+
+    #[cfg(not(feature = "stub_client"))]
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "stub_backends")] {
+            return format!("([{}] {} MOCK) {} server.", lang, function, name);
+        } else {
+            return format!("([{}] {}) {} client.", lang, function, name);
+        }
+    }
 }
 
 #[tokio::test]
@@ -33,17 +42,22 @@ async fn test_client_requests_and_logs() {
 
     //test_is_ready_request_logs
     {
-        let result = client.is_ready(tonic::Request::new(ReadyRequest {})).await;
+        let result = client.is_ready(ReadyRequest {}).await;
         println!("{:?}", result);
         assert!(result.is_ok());
 
         // Search for the expected log message
-        let expected_msg = get_log_string(&name);
-        println!("Expected log message: {}", expected_msg);
+        let expected = get_log_string("is_ready", name);
+        println!("expected message: {}", expected);
         assert!(logger.any(|log| {
-            let message = log.args();
-            println!("{:?}", message);
-            log.args() == expected_msg
+            if log.target().contains("app::") {
+                println!("{}", log.target());
+                let message = log.args();
+                println!("{:?}", message);
+                log.args() == expected
+            } else {
+                false
+            }
         }));
     }
 }
