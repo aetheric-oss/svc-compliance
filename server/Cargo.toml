@@ -1,25 +1,32 @@
 [package]
-description = "Arrow compliance service GRPC server"
+description = "Arrow compliance service gRPC server"
+keywords    = ["vtol", "server", "grpc", "compliance"] # max 5
 name        = "svc-compliance"
 version     = "0.1.1-develop.4"
 
+authors.workspace      = true
 categories.workspace   = true
 edition.workspace      = true
 homepage.workspace     = true
-keywords.workspace     = true
 license-file.workspace = true
 repository.workspace   = true
 
 [features]
 default          = []
-mock             = []
-test_util        = ["mock"]
+dev              = ["test_util"]
+test_util        = ["mock", "stub_backends"]
 vendored-openssl = ["openssl/vendored"]
 # region options, can only activate one
 nl = []
 us = []
-# Will implement mock functions for the server, only use for tests!
-mock_server = ["test_util"]
+# Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
+mock = []
+# Will use a stubbed backend connection, only use for tests!
+stub_backends = []
+# Will implement stub functions for the server, only use for tests!
+stub_server = ["test_util"]
+# Only added to support client-grpc feature when running tests
+stub_client = ["stub_backends"]
 
 [dependencies]
 anyhow          = "1.0"
@@ -61,6 +68,11 @@ logtest = "2.0"
 default-features = false          # Disable features which are enabled by default
 features         = ["user-hooks"]
 version          = "1"
+
+# Make sure we enable the required modules when running tests
+[dev-dependencies.svc-compliance]
+features = ["dev"]
+path     = "."
 
 [build-dependencies]
 tonic-build = "0.8"
