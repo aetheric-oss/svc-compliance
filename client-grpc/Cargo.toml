@@ -1,24 +1,25 @@
 [package]
-description = "Arrow GRPC client for the compliance service"
+description = "Arrow compliance service gRPC client"
+keywords    = ["vtol", "client", "grpc", "compliance"] # max 5
 name        = "svc-compliance-client-grpc"
 version     = "0.1.1-develop.4"
 
+authors.workspace      = true
 categories.workspace   = true
 edition.workspace      = true
 homepage.workspace     = true
-keywords.workspace     = true
 license-file.workspace = true
 repository.workspace   = true
 
 [features]
-# Will implement mock functions for the client, only use for tests!
-mock_client = ["tower", "tokio", "lib-common/grpc_mock"]
-test_util = [
-  "tower",
-  "tokio",
-  "lib-common/grpc_mock",
-  "svc-compliance/mock_server",
-]
+dev       = ["test_util"]
+test_util = ["mock", "stub_backends", "tokio"]
+# Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
+mock = []
+# Will use a stubbed server connection, only use for tests!
+stub_backends = ["svc-compliance/stub_server", "lib-common/grpc_mock", "tower"]
+# Will implement stub functions for the client, only use for tests!
+stub_client = ["svc-compliance"]
 # region options, can only activate one, used for tests only
 nl = ["svc-compliance?/nl"]
 us = ["svc-compliance?/us"]
@@ -47,7 +48,7 @@ logtest = "2.0"
 
 # Make sure we enable the required modules for testing
 [dev-dependencies.svc-compliance-client-grpc]
-features = ["test_util"]
+features = ["dev"]
 path     = "."
 
 [[example]]

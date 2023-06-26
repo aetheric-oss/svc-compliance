@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+
 pub mod service;
 pub use client::*;
 pub use lib_common::grpc::{Client, ClientConnect, GrpcClient};
@@ -12,24 +13,22 @@ pub mod client {
     #![allow(unused_qualifications)]
     include!("grpc.rs");
 
-    use tonic::transport::Channel;
+    use super::*;
 
     pub use rpc_service_client::RpcServiceClient;
     cfg_if::cfg_if! {
-        if #[cfg(feature = "test_util")] {
-            use lib_common::grpc_mock_client;
+        if #[cfg(feature = "stub_backends")] {
             use svc_compliance::grpc::server::{RpcServiceServer, ServerImpl};
-            grpc_mock_client!(RpcServiceClient, RpcServiceServer, ServerImpl);
-            super::log_macros!("grpc", "app::client::mock_compliance");
+            lib_common::grpc_mock_client!(RpcServiceClient, RpcServiceServer, ServerImpl);
+            super::log_macros!("grpc", "app::client::mock::compliance");
         } else {
-            use lib_common::grpc_client;
-            grpc_client!(RpcServiceClient);
+            lib_common::grpc_client!(RpcServiceClient);
             super::log_macros!("grpc", "app::client::compliance");
         }
     }
 }
 
-#[cfg(not(feature = "mock_client"))]
+#[cfg(not(feature = "stub_client"))]
 #[async_trait]
 impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<Channel>> {
     type ReadyRequest = ReadyRequest;
@@ -37,7 +36,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn is_ready(
         &self,
-        request: tonic::Request<Self::ReadyRequest>,
+        request: Self::ReadyRequest,
     ) -> Result<tonic::Response<Self::ReadyResponse>, tonic::Status> {
         grpc_info!("(is_ready) {} client.", self.get_name());
         grpc_debug!("(is_ready) request: {:?}", request);
@@ -46,7 +45,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn submit_flight_plan(
         &self,
-        request: tonic::Request<FlightPlanRequest>,
+        request: FlightPlanRequest,
     ) -> Result<tonic::Response<FlightPlanResponse>, tonic::Status> {
         grpc_warn!("(submit_flight_plan) {} client.", self.get_name());
         grpc_debug!("(submit_flight_plan) request: {:?}", request);
@@ -55,7 +54,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn request_flight_release(
         &self,
-        request: tonic::Request<FlightReleaseRequest>,
+        request: FlightReleaseRequest,
     ) -> Result<tonic::Response<FlightReleaseResponse>, tonic::Status> {
         grpc_warn!("(request_flight_release) {} client.", self.get_name());
         grpc_debug!("(request_flight_release) request: {:?}", request);
@@ -67,7 +66,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn request_waypoints(
         &self,
-        request: tonic::Request<WaypointsRequest>,
+        request: WaypointsRequest,
     ) -> Result<tonic::Response<WaypointsResponse>, tonic::Status> {
         grpc_warn!("(request_waypoints) {} client.", self.get_name());
         grpc_debug!("(request_waypoints) request: {:?}", request);
@@ -76,7 +75,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn request_restrictions(
         &self,
-        request: tonic::Request<RestrictionsRequest>,
+        request: RestrictionsRequest,
     ) -> Result<tonic::Response<RestrictionsResponse>, tonic::Status> {
         grpc_warn!("(request_restrictions) {} client.", self.get_name());
         grpc_debug!("(request_restrictions) request: {:?}", request);
@@ -84,7 +83,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
     }
 }
 
-#[cfg(any(feature = "mock_client"))]
+#[cfg(any(feature = "stub_client"))]
 #[async_trait]
 impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<Channel>> {
     type ReadyRequest = ReadyRequest;
@@ -92,7 +91,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn is_ready(
         &self,
-        request: tonic::Request<Self::ReadyRequest>,
+        request: Self::ReadyRequest,
     ) -> Result<tonic::Response<Self::ReadyResponse>, tonic::Status> {
         grpc_warn!("(is_ready MOCK) {} client.", self.get_name());
         grpc_debug!("(is_ready MOCK) request: {:?}", request);
@@ -100,11 +99,10 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
     }
     async fn submit_flight_plan(
         &self,
-        request: tonic::Request<FlightPlanRequest>,
+        request: FlightPlanRequest,
     ) -> Result<tonic::Response<FlightPlanResponse>, tonic::Status> {
         grpc_warn!("(submit_flight_plan MOCK) {} client.", self.get_name());
         grpc_debug!("(submit_flight_plan MOCK) request: {:?}", request);
-        let request = request.into_inner();
         Ok(tonic::Response::new(FlightPlanResponse {
             flight_plan_id: request.flight_plan_id,
             submitted: true,
@@ -114,11 +112,10 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn request_flight_release(
         &self,
-        request: tonic::Request<FlightReleaseRequest>,
+        request: FlightReleaseRequest,
     ) -> Result<tonic::Response<FlightReleaseResponse>, tonic::Status> {
         grpc_warn!("(request_flight_release MOCK) {} client.", self.get_name());
         grpc_debug!("(request_flight_release MOCK) request: {:?}", request);
-        let request = request.into_inner();
         Ok(tonic::Response::new(FlightReleaseResponse {
             flight_plan_id: request.flight_plan_id,
             released: true,
@@ -128,7 +125,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn request_waypoints(
         &self,
-        request: tonic::Request<WaypointsRequest>,
+        request: WaypointsRequest,
     ) -> Result<tonic::Response<WaypointsResponse>, tonic::Status> {
         grpc_warn!("(request_waypoints MOCK) {} client.", self.get_name());
         grpc_debug!("(request_waypoints MOCK) request: {:?}", request);
@@ -139,7 +136,7 @@ impl service::Client<RpcServiceClient<Channel>> for GrpcClient<RpcServiceClient<
 
     async fn request_restrictions(
         &self,
-        request: tonic::Request<RestrictionsRequest>,
+        request: RestrictionsRequest,
     ) -> Result<tonic::Response<RestrictionsResponse>, tonic::Status> {
         grpc_warn!("(request_restrictions MOCK) {} client.", self.get_name());
         grpc_debug!("(request_restrictions MOCK) request: {:?}", request);
@@ -180,7 +177,7 @@ mod tests {
         let client: GrpcClient<RpcServiceClient<Channel>> =
             GrpcClient::new_client(&server_host, server_port, name);
 
-        let result = client.is_ready(tonic::Request::new(ReadyRequest {})).await;
+        let result = client.is_ready(ReadyRequest {}).await;
         println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(result.unwrap().into_inner().ready, true);
@@ -196,10 +193,10 @@ mod tests {
             GrpcClient::new_client(&server_host, server_port, name);
 
         let result = client
-            .submit_flight_plan(tonic::Request::new(FlightPlanRequest {
+            .submit_flight_plan(FlightPlanRequest {
                 flight_plan_id: "".to_string(),
                 data: "".to_string(),
-            }))
+            })
             .await;
 
         assert!(result.is_ok());
@@ -218,10 +215,10 @@ mod tests {
             GrpcClient::new_client(&server_host, server_port, name);
 
         let result = client
-            .request_flight_release(tonic::Request::new(FlightReleaseRequest {
+            .request_flight_release(FlightReleaseRequest {
                 flight_plan_id: "".to_string(),
                 data: "".to_string(),
-            }))
+            })
             .await;
 
         assert!(result.is_ok());
@@ -251,9 +248,9 @@ mod tests {
             }),
         };
         let result = client
-            .request_waypoints(tonic::Request::new(WaypointsRequest {
+            .request_waypoints(WaypointsRequest {
                 filter: Some(filter),
-            }))
+            })
             .await;
 
         assert!(result.is_ok());
@@ -282,9 +279,9 @@ mod tests {
             }),
         };
         let result = client
-            .request_restrictions(tonic::Request::new(RestrictionsRequest {
+            .request_restrictions(RestrictionsRequest {
                 filter: Some(filter),
-            }))
+            })
             .await;
 
         assert!(result.is_ok());

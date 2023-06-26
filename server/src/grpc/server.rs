@@ -60,13 +60,13 @@ impl Default for ServerImpl {
     }
 }
 
-#[cfg(not(feature = "mock_server"))]
+#[cfg(not(feature = "stub_server"))]
 #[tonic::async_trait]
 impl RpcService for ServerImpl {
     /// Returns ready:true when service is available
     async fn is_ready(
         &self,
-        _request: Request<ReadyRequest>,
+        request: Request<ReadyRequest>,
     ) -> Result<Response<ReadyResponse>, Status> {
         grpc_warn!(
             "([{}] is_ready) compliance server.",
@@ -184,7 +184,7 @@ pub async fn grpc_server(config: Config) {
     };
 }
 
-#[cfg(feature = "mock_server")]
+#[cfg(feature = "stub_server")]
 #[tonic::async_trait]
 impl RpcService for ServerImpl {
     async fn is_ready(
