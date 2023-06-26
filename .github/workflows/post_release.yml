@@ -91,7 +91,6 @@ jobs:
           - nl
           - us
     env:
-      PACKAGE_RELEASE_FEATURES: ${{ matrix.region }}
       DOCKER_IMAGE: ghcr.io/${{ github.repository }}
     steps:
       - name: Checkout Code
@@ -120,10 +119,11 @@ jobs:
         with:
           images: ${{ env.DOCKER_IMAGE }}
           tags: |
+            type=edge,branch=main,suffix=${{ matrix.region }}
             type=ref,event=branch,suffix=${{ matrix.region }}
-            type=ref,event=pr,suffix=${{ matrix.region }}
-            type=semver,pattern=v{{version}},value=${{ github.ref_name }},suffix=-${{ matrix.region }}
-            type=semver,pattern=v{{major}}.{{minor}},value=${{ github.ref_name }},suffix=-${{ matrix.region }}
+            type=ref,event=workflow_dispatch,suffix=${{ matrix.region }}
+            type=semver,pattern=v{{version}},value=${{ github.ref_name }},suffix=${{ matrix.region }}
+            type=semver,pattern=v{{major}}.{{minor}},value=${{ github.ref_name }},suffix=${{ matrix.region }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
@@ -134,6 +134,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             PACKAGE_NAME=${{ github.event.repository.name }}
+            ENABLE_FEATURES: ${{ matrix.region }}
 
   rust-docs:
     name: Generate and sync Rust docs
