@@ -34,6 +34,8 @@ cfg-if         = "1.0"
 log            = { version = "0.4" }
 prost          = "0.11"
 prost-types    = "0.11"
+serde          = { version = "1.0", features = ["derive"] }
+serde_json     = "1.0"
 svc-compliance = { path = "../server", optional = true }
 tonic          = "0.8"
 tower          = { version = "0.4", optional = true }
@@ -49,11 +51,13 @@ optional = true
 version  = "1.28"
 
 [dev-dependencies]
-logtest = "2.0"
+futures-lite = "1.13"
+lapin        = "2.1"
+logtest      = "2.0"
 
 # Make sure we enable the required modules for testing
 [dev-dependencies.svc-compliance-client-grpc]
-features = ["dev"]
+features = ["dev"] # change from 'dev' to 'tokio' for non-stub examples run
 path     = "."
 
 [[example]]

@@ -6,6 +6,7 @@ mod grpc_server {
     tonic::include_proto!("grpc");
 }
 
+pub use crate::amqp::init_mq;
 pub use grpc_server::rpc_service_server::{RpcService, RpcServiceServer};
 pub use grpc_server::{Coordinate, CoordinateFilter};
 pub use grpc_server::{FlightPlanRequest, FlightPlanResponse};
@@ -18,46 +19,25 @@ use crate::config::Config;
 use crate::region::RegionInterface;
 use crate::shutdown_signal;
 
-use core::fmt;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
 /// struct to implement the gRPC server functions
+#[allow(missing_debug_implementations)]
 pub struct ServerImpl {
-    region: Box<dyn RegionInterface + Send + Sync>,
-    restrictions: Arc<Mutex<Vec<FlightRestriction>>>,
-    waypoints: Arc<Mutex<Vec<Waypoint>>>,
-}
-impl fmt::Debug for ServerImpl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ServerImpl")
-            .field("region", &"RegionInterface (not printable)")
-            .field(
-                "restrictions",
-                &format_args!("{:?}", self.restrictions.lock().unwrap()),
-            )
-            .field(
-                "waypoints",
-                &format_args!("{:?}", self.waypoints.lock().unwrap()),
-            )
-            .finish()
-    }
-}
+    /// AMQP channel
+    pub mq_channel: Option<lapin::Channel>,
 
-impl Default for ServerImpl {
-    fn default() -> Self {
-        let region = Box::<crate::region::RegionImpl>::default();
-        let restrictions = Arc::new(Mutex::new(Vec::new()));
-        let waypoints = Arc::new(Mutex::new(Vec::new()));
+    /// Region interface
+    pub region: Box<dyn RegionInterface + Send + Sync>,
 
-        Self {
-            region,
-            restrictions,
-            waypoints,
-        }
-    }
+    /// No Fly Zones and Temporary Flight Restrictions
+    pub restrictions: Arc<Mutex<Vec<FlightRestriction>>>,
+
+    /// Waypoints
+    pub waypoints: Arc<Mutex<Vec<Waypoint>>>,
 }
 
 #[cfg(not(feature = "stub_server"))]
@@ -86,7 +66,39 @@ impl RpcService for ServerImpl {
             self.region.get_region()
         );
         grpc_debug!("(submit_flight_plan) request: {:?}", request);
-        self.region.submit_flight_plan(request)
+        let request = request.into_inner();
+        let response = self.region.submit_flight_plan(request.clone());
+
+        if response.is_err() {
+            return response;
+        }
+
+        // send flight plan to AMQP
+        if let Some(mq_channel) = &self.mq_channel {
+            let Ok(payload) = serde_json::to_vec(&request) else {
+                grpc_error!("(submit_flight_plan) could not serialize flight plan.");
+                return response;
+            };
+
+            let result = mq_channel
+                .basic_publish(
+                    crate::amqp::EXCHANGE_NAME_FLIGHTPLAN,
+                    crate::amqp::QUEUE_NAME_CARGO,
+                    lapin::options::BasicPublishOptions::default(),
+                    &payload,
+                    lapin::BasicProperties::default(),
+                )
+                .await;
+
+            match result {
+                Ok(_) => grpc_info!("(submit_flight_plan) telemetry pushed to RabbitMQ."),
+                Err(e) => {
+                    grpc_error!("(submit_flight_plan) telemetry push to RabbitMQ failed: {e}.")
+                }
+            }
+        }
+
+        response
     }
 
     async fn request_flight_release(
@@ -153,7 +165,19 @@ pub async fn grpc_server(config: Config) {
         }
     };
 
-    let imp = ServerImpl::default();
+    // RabbitMQ Channel
+    let Ok(mq_channel) = init_mq(config.clone()).await else {
+        grpc_error!("(grpc_server) could not create channel to amqp server.");
+        return;
+    };
+
+    let imp = ServerImpl {
+        mq_channel: Some(mq_channel),
+        region: Box::<crate::region::RegionImpl>::default(),
+        restrictions: Arc::new(Mutex::new(Vec::new())),
+        waypoints: Arc::new(Mutex::new(Vec::new())),
+    };
+
     // TODO(R4): Move these to a thread and allow to loop
     imp.region
         .refresh_restrictions(imp.restrictions.clone())
@@ -268,9 +292,22 @@ mod tests {
     use super::grpc_server::*;
     use super::*;
 
-    #[test]
-    fn test_region_code() {
-        let imp = ServerImpl::default();
+    fn get_server_impl() -> ServerImpl {
+        let region = Box::<crate::region::RegionImpl>::default();
+        let restrictions = Arc::new(Mutex::new(Vec::new()));
+        let waypoints = Arc::new(Mutex::new(Vec::new()));
+
+        ServerImpl {
+            mq_channel: None,
+            region,
+            restrictions,
+            waypoints,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_region_code() {
+        let imp = get_server_impl();
         cfg_if::cfg_if! {
             if #[cfg(feature = "nl")] {
                 assert_eq!(imp.region.get_region(), "nl");
@@ -282,7 +319,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_server_is_ready() {
-        let imp = ServerImpl::default();
+        let imp = get_server_impl();
         let result = imp.is_ready(Request::new(ReadyRequest {})).await;
         assert!(result.is_ok());
         let result: ReadyResponse = result.unwrap().into_inner();
@@ -291,7 +328,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_submit_flight_plan() {
-        let imp = ServerImpl::default();
+        let imp = get_server_impl();
         let result = imp
             .submit_flight_plan(Request::new(FlightPlanRequest {
                 flight_plan_id: "".to_string(),
@@ -307,7 +344,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_request_flight_release() {
-        let imp = ServerImpl::default();
+        let imp = get_server_impl();
         let result = imp
             .request_flight_release(Request::new(FlightReleaseRequest {
                 flight_plan_id: "".to_string(),
@@ -323,7 +360,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_request_waypoints() {
-        let imp = ServerImpl::default();
+        let imp = get_server_impl();
 
         let filter = CoordinateFilter {
             min: Some(Coordinate {
@@ -350,7 +387,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_request_restrictions() {
-        let imp = ServerImpl::default();
+        let imp = get_server_impl();
 
         let filter = CoordinateFilter {
             min: Some(Coordinate {

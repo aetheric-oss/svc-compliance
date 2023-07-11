@@ -35,7 +35,7 @@ impl RegionInterface for super::RegionImpl {
 
     fn submit_flight_plan(
         &self,
-        request: Request<FlightPlanRequest>,
+        request: FlightPlanRequest,
     ) -> Result<Response<FlightPlanResponse>, Status> {
         region_info!("([nl] submit_flight_plan) entry.");
 
@@ -43,7 +43,7 @@ impl RegionInterface for super::RegionImpl {
         // TODO(R4) implement
         //
 
-        let flight_plan_id = request.into_inner().flight_plan_id;
+        let flight_plan_id = request.flight_plan_id;
         Ok(Response::new(FlightPlanResponse {
             flight_plan_id,
             submitted: true,
@@ -246,10 +246,10 @@ mod tests {
     #[test]
     fn test_submit_flight_plan() {
         let region = RegionImpl::default();
-        let result = region.submit_flight_plan(tonic::Request::new(FlightPlanRequest {
+        let result = region.submit_flight_plan(FlightPlanRequest {
             flight_plan_id: "".to_string(),
             data: "".to_string(),
-        }));
+        });
 
         assert!(result.is_ok());
         let result: FlightPlanResponse = result.unwrap().into_inner();

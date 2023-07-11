@@ -33,6 +33,20 @@ appenders:
         base: 1
     encoder:
       kind: json
+  amqp:
+    kind: rolling_file
+    path: "logs/amqp.log"
+    policy:
+      trigger:
+        kind: size
+        limit: 20mb
+      roller:
+        kind: fixed_window
+        pattern: logs/amqp_{}.gz
+        count: 5
+        base: 1
+    encoder:
+      kind: json
 
 root:
   level: info
@@ -45,6 +59,10 @@ loggers:
     appenders:
       - grpc_requests
   app::region:
+    level: info
+    appenders:
+      - region_requests
+  app::amqp:
     level: info
     appenders:
       - region_requests

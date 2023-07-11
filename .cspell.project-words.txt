@@ -31,3 +31,9 @@ stuckee
 datetime
 nofly
 logtest
+RabbitMQ
+amqp
+nanos
+deadpool
+flightplan
+adsb

@@ -19,7 +19,59 @@ pub mod client {
     cfg_if::cfg_if! {
         if #[cfg(feature = "stub_backends")] {
             use svc_compliance::grpc::server::{RpcServiceServer, ServerImpl};
-            lib_common::grpc_mock_client!(RpcServiceClient, RpcServiceServer, ServerImpl);
+            use std::sync::{Arc, Mutex};
+
+            #[tonic::async_trait]
+            impl lib_common::grpc::ClientConnect<RpcServiceClient<Channel>>
+                for lib_common::grpc::GrpcClient<RpcServiceClient<Channel>>
+            {
+                /// Get a connected client object
+                async fn connect(
+                    &self,
+                ) -> Result<RpcServiceClient<Channel>, tonic::transport::Error> {
+                    let (client, server) = tokio::io::duplex(1024);
+
+                    let region = Box::<svc_compliance::region::RegionImpl>::default();
+                    let restrictions = Arc::new(Mutex::new(Vec::new()));
+                    let waypoints = Arc::new(Mutex::new(Vec::new()));
+
+                    let grpc_service = ServerImpl {
+                        mq_channel: None,
+                        region,
+                        restrictions,
+                        waypoints
+                    };
+
+                    lib_common::grpc::mock::start_mock_server(
+                        server,
+                        RpcServiceServer::new(grpc_service),
+                    )
+                    .await?;
+
+                    // Move client to an option so we can _move_ the inner value
+                    // on the first attempt to connect. All other attempts will fail.
+                    let mut client = Some(client);
+                    let channel = tonic::transport::Endpoint::try_from("http://[::]:50051")?
+                        .connect_with_connector(tower::service_fn(move |_: tonic::transport::Uri| {
+                            let client = client.take();
+
+                            async move {
+                                if let Some(client) = client {
+                                    Ok(client)
+                                } else {
+                                    Err(std::io::Error::new(
+                                        std::io::ErrorKind::Other,
+                                        "Client already taken",
+                                    ))
+                                }
+                            }
+                        }))
+                        .await?;
+
+                    Ok(RpcServiceClient::new(channel))
+                }
+            }
+
             super::log_macros!("grpc", "app::client::mock::compliance");
         } else {
             lib_common::grpc_client!(RpcServiceClient);
