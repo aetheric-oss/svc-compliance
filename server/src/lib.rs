@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+pub mod amqp;
 pub mod config;
 pub mod grpc;
 pub mod region;

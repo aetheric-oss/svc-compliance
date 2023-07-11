@@ -11,7 +11,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("Coordinate", "#[derive(Copy)]")
         .type_attribute("RestrictionsRequest", "#[derive(Copy)]")
         .type_attribute("CoordinateFilter", "#[derive(Copy)]")
-        .type_attribute("WaypointsRequest", "#[derive(Copy)]");
+        .type_attribute("WaypointsRequest", "#[derive(Copy)]")
+        .type_attribute("FlightPlanRequest", "#[derive(serde::Serialize)]");
 
     let client_config = server_config.clone();
 

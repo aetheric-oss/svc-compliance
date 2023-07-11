@@ -5,6 +5,7 @@
 use anyhow::Result;
 use config::{ConfigError, Environment};
 use dotenv::dotenv;
+use lapin::ConnectionProperties;
 use serde::Deserialize;
 
 /// struct holding configuration options
@@ -14,6 +15,8 @@ pub struct Config {
     pub docker_port_grpc: u16,
     /// path to log configuration YAML file
     pub log_config: String,
+    /// AMQP Settings
+    pub amqp: deadpool_lapin::Config,
 }
 
 impl Default for Config {
@@ -29,6 +32,11 @@ impl Config {
         Config {
             docker_port_grpc: 50051,
             log_config: String::from("./log4rs.yaml"),
+            amqp: deadpool_lapin::Config {
+                url: None,
+                pool: None,
+                connection_properties: ConnectionProperties::default(),
+            },
         }
     }
 
@@ -56,6 +64,8 @@ mod tests {
 
         assert_eq!(config.docker_port_grpc, 50051);
         assert_eq!(config.log_config, String::from("./log4rs.yaml"));
+        assert!(config.amqp.url.is_none());
+        assert!(config.amqp.pool.is_none());
     }
 
     #[tokio::test]
@@ -63,6 +73,10 @@ mod tests {
         async move {
             std::env::set_var("DOCKER_PORT_GRPC", "6789");
             std::env::set_var("LOG_CONFIG", "config_file.yaml");
+            std::env::set_var("AMQP__URL", "amqp://test_rabbitmq:5672");
+            std::env::set_var("AMQP__POOL__MAX_SIZE", "16");
+            std::env::set_var("AMQP__POOL__TIMEOUTS__WAIT__SECS", "2");
+            std::env::set_var("AMQP__POOL__TIMEOUTS__WAIT__NANOS", "0");
 
             let config = Config::try_from_env();
             assert!(config.is_ok());
@@ -70,6 +84,11 @@ mod tests {
 
             assert_eq!(config.docker_port_grpc, 6789);
             assert_eq!(config.log_config, String::from("config_file.yaml"));
+            assert_eq!(
+                config.amqp.url,
+                Some(String::from("amqp://test_rabbitmq:5672"))
+            );
+            assert!(config.amqp.pool.is_some());
         }
         .await
     }

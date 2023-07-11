@@ -38,7 +38,7 @@ pub trait RegionInterface {
     /// Submit a new flight plan for the region
     fn submit_flight_plan(
         &self,
-        request: Request<FlightPlanRequest>,
+        request: FlightPlanRequest,
     ) -> Result<Response<FlightPlanResponse>, Status>;
 
     /// Request a flight plan release for the region
