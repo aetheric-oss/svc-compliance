@@ -2,7 +2,7 @@
 description = "Arrow compliance service gRPC server"
 keywords    = ["vtol", "server", "grpc", "compliance"] # max 5
 name        = "svc-compliance"
-version     = "0.1.1-develop.4"
+version     = "0.1.1-develop.6"
 
 authors.workspace      = true
 categories.workspace   = true
