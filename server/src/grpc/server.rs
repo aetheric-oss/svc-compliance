@@ -13,9 +13,12 @@ pub use grpc_server::{FlightPlanRequest, FlightPlanResponse};
 pub use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
 pub use grpc_server::{ReadyRequest, ReadyResponse};
 use lib_common::time::datetime_to_timestamp;
-use svc_gis_client_grpc::client::rpc_service_client::RpcServiceClient as GisClient;
-use svc_gis_client_grpc::NoFlyZone;
-use svc_gis_client_grpc::{Coordinates, UpdateNoFlyZonesRequest, UpdateWaypointsRequest};
+use svc_gis_client_grpc::service::Client as ServiceClient;
+use svc_gis_client_grpc::{Client, GrpcClient, RpcServiceClient};
+use svc_gis_client_grpc::{
+    Coordinates, NoFlyZone, UpdateNoFlyZonesRequest, UpdateWaypointsRequest,
+};
+use tonic::transport::Channel;
 
 use crate::config::Config;
 use crate::region::RegionInterface;
@@ -35,6 +38,32 @@ pub struct ServerImpl {
 
     /// Region interface
     pub region: Box<dyn RegionInterface + Send + Sync>,
+}
+
+/// Results of updating restrictions
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum UpdateRestrictionsStatus {
+    /// Restrictions were updated
+    Success,
+
+    /// No restrictions were updated
+    NoRestrictions,
+
+    /// Request to gRPC server failed
+    RequestFailure,
+}
+
+/// Results of updating waypoints
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum UpdateWaypointsStatus {
+    /// Waypoints were updated
+    Success,
+
+    /// No waypoints were updated
+    NoWaypoints,
+
+    /// Request to gRPC server failed
+    RequestFailure,
 }
 
 impl fmt::Debug for ServerImpl {
@@ -119,7 +148,11 @@ impl RpcService for ServerImpl {
     }
 }
 
-async fn update_waypoints(host: String, port: u16, waypoints: &HashMap<String, Coordinates>) {
+async fn update_waypoints(
+    host: String,
+    port: u16,
+    waypoints: &HashMap<String, Coordinates>,
+) -> UpdateWaypointsStatus {
     let nodes: Vec<svc_gis_client_grpc::client::Waypoint> = waypoints
         .iter()
         .map(
@@ -131,24 +164,20 @@ async fn update_waypoints(host: String, port: u16, waypoints: &HashMap<String, C
         .collect();
 
     if nodes.is_empty() {
-        grpc_warn!("(waypoints_loop) no waypoints to update.");
-        return;
+        grpc_warn!("(update_waypoints) no waypoints to update.");
+        return UpdateWaypointsStatus::NoWaypoints;
     }
 
     let request = tonic::Request::new(UpdateWaypointsRequest { waypoints: nodes });
-    let address = format!("{}:{}", host, port);
-    let result = GisClient::connect(address).await;
-    let Ok(mut client) = result else {
-        grpc_error!("Failed to connect to gRPC server: {}", result.unwrap_err());
-        return;
-    };
-
-    match client.update_waypoints(request).await {
+    let connection = GrpcClient::<RpcServiceClient<Channel>>::new_client(&host, port, "gis");
+    match connection.update_waypoints(request).await {
         Ok(response) => {
-            grpc_info!("RESPONSE={:?}", response);
+            grpc_debug!("(update_waypoints) RESPONSE={:?}", response);
+            UpdateWaypointsStatus::Success
         }
         Err(e) => {
-            grpc_error!("ERROR={:?}", e);
+            grpc_error!("(update_waypoints) ERROR={:?}", e);
+            UpdateWaypointsStatus::RequestFailure
         }
     }
 }
@@ -180,15 +209,24 @@ async fn update_restrictions(
     host: String,
     port: u16,
     restrictions: &HashMap<String, RestrictionDetails>,
-) {
+) -> UpdateRestrictionsStatus {
     let mut zones: Vec<NoFlyZone> = vec![];
+
     for (label, details) in restrictions.iter() {
         let time_start = match details.timestamp_start {
             Some(t) => match datetime_to_timestamp(&t) {
                 Some(t) => Some(t),
                 _ => {
-                    grpc_error!("(restrictions_loop) could not convert timestamp for zone with label {label}.");
-                    continue;
+                    grpc_error!("(update_restrictions) Zone `{label}`: Could not convert start time to timestamp.");
+                    grpc_error!(
+                        "(update_restrictions) Zone `{label}`: No fly zone starts immediately."
+                    );
+                    // The restriction, if reported by the civil authority, should be represented
+                    //  in our system even if we couldn't convert the timestamp.
+                    //  Therefore, we don't return an error here. We mark the start timestamp as
+                    //  None (starts immediately) and err on the side of caution.
+                    // This shouldn't occur anyway, it seems like one should always be able to convert a datetime to a timestamp.
+                    None
                 }
             },
             None => None,
@@ -198,8 +236,14 @@ async fn update_restrictions(
             Some(t) => match datetime_to_timestamp(&t) {
                 Some(t) => Some(t),
                 _ => {
-                    grpc_error!("(restrictions_loop) could not convert timestamp for zone with label {label}.");
-                    continue;
+                    grpc_error!("(update_restrictions) Zone `{label}`: Could not convert end time to timestamp.");
+                    grpc_error!("(update_restrictions) Zone `{label}`: No fly zone is indefinite; manual deletion required.");
+                    // The restriction, if reported by the civil authority, should be represented
+                    //  in our system even if we couldn't convert the timestamp.
+                    //  Therefore, we don't return an error here. We mark the start timestamp as
+                    //  None (ends never) and err on the side of caution.
+                    // This shouldn't occur anyway, it seems like one should always be able to convert a datetime to a timestamp.
+                    None
                 }
             },
             None => None,
@@ -221,24 +265,20 @@ async fn update_restrictions(
     }
 
     if zones.is_empty() {
-        grpc_warn!("(restrictions_loop) no restrictions to update.");
-        return;
+        grpc_warn!("(update_restrictions) no restrictions to update.");
+        return UpdateRestrictionsStatus::NoRestrictions;
     }
 
     let request = tonic::Request::new(UpdateNoFlyZonesRequest { zones });
-    let address = format!("{}:{}", host, port);
-    let result = GisClient::connect(address).await;
-    let Ok(mut client) = result else {
-        grpc_error!("Failed to connect to gRPC server: {}", result.unwrap_err());
-        return;
-    };
-
-    match client.update_no_fly_zones(request).await {
+    let connection = GrpcClient::<RpcServiceClient<Channel>>::new_client(&host, port, "gis");
+    match connection.update_no_fly_zones(request).await {
         Ok(response) => {
-            grpc_info!("RESPONSE={:?}", response);
+            grpc_debug!("(update_restrictions) RESPONSE={:?}", response);
+            UpdateRestrictionsStatus::Success
         }
         Err(e) => {
-            grpc_error!("ERROR={:?}", e);
+            grpc_error!("(update_restrictions) ERROR={:?}", e);
+            UpdateRestrictionsStatus::RequestFailure
         }
     }
 }
@@ -449,5 +489,48 @@ mod tests {
         let result: FlightReleaseResponse = result.unwrap().into_inner();
         println!("{:?}", result);
         assert_eq!(result.released, true);
+    }
+
+    #[tokio::test]
+    async fn test_update_restrictions() {
+        let host = "localhost".to_string();
+        let port = 50008;
+
+        let mut cache: HashMap<String, RestrictionDetails> = HashMap::new();
+        let result = update_restrictions(host.clone(), port, &cache).await;
+        assert_eq!(result, UpdateRestrictionsStatus::NoRestrictions);
+
+        cache.insert(
+            "test".to_string(),
+            RestrictionDetails {
+                vertices: vec![],
+                timestamp_start: Some(chrono::Utc::now()),
+                timestamp_end: None,
+            },
+        );
+
+        let result = update_restrictions(host.clone(), port, &cache).await;
+        assert_eq!(result, UpdateRestrictionsStatus::Success);
+    }
+
+    #[tokio::test]
+    async fn test_update_waypoints() {
+        let host = "localhost".to_string();
+        let port = 50008;
+
+        let mut cache: HashMap<String, Coordinates> = HashMap::new();
+        let result = update_waypoints(host.clone(), port, &cache).await;
+        assert_eq!(result, UpdateWaypointsStatus::NoWaypoints);
+
+        cache.insert(
+            "ARROW-WAY-1".to_string(),
+            Coordinates {
+                latitude: 0.0,
+                longitude: 0.0,
+            },
+        );
+
+        let result = update_waypoints(host.clone(), port, &cache).await;
+        assert_eq!(result, UpdateWaypointsStatus::Success);
     }
 }

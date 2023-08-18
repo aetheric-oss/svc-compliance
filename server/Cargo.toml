@@ -56,8 +56,9 @@ tonic           = "0.8"
 tonic-health    = "0.8"
 
 [dependencies.lib-common]
-git = "https://github.com/Arrow-air/lib-common.git"
-tag = "v0.1.1-develop.2"
+features = ["grpc"]
+git      = "https://github.com/Arrow-air/lib-common.git"
+tag      = "v0.1.1-develop.2"
 
 [dependencies.svc-gis-client-grpc]
 git = "https://github.com/Arrow-air/svc-gis.git"

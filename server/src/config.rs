@@ -28,6 +28,7 @@ pub struct Config {
 
     /// path to log configuration YAML file
     pub log_config: String,
+
     /// AMQP Settings
     pub amqp: deadpool_lapin::Config,
 }
@@ -80,6 +81,10 @@ mod tests {
         let config = Config::default();
 
         assert_eq!(config.docker_port_grpc, 50051);
+        assert_eq!(config.gis_host_grpc, String::from("svc-gis"));
+        assert_eq!(config.gis_port_grpc, 50008);
+        assert_eq!(config.interval_seconds_refresh_zones, 30);
+        assert_eq!(config.interval_seconds_refresh_waypoints, 30);
         assert_eq!(config.log_config, String::from("./log4rs.yaml"));
         assert!(config.amqp.url.is_none());
         assert!(config.amqp.pool.is_none());
@@ -89,6 +94,10 @@ mod tests {
     async fn test_config_from_env() {
         async move {
             std::env::set_var("DOCKER_PORT_GRPC", "6789");
+            std::env::set_var("GIS_HOST_GRPC", "svc-gis");
+            std::env::set_var("GIS_PORT_GRPC", "50008");
+            std::env::set_var("INTERVAL_SECONDS_REFRESH_ZONES", "30");
+            std::env::set_var("INTERVAL_SECONDS_REFRESH_WAYPOINTS", "30");
             std::env::set_var("LOG_CONFIG", "config_file.yaml");
             std::env::set_var("AMQP__URL", "amqp://test_rabbitmq:5672");
             std::env::set_var("AMQP__POOL__MAX_SIZE", "16");
