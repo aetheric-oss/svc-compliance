@@ -20,10 +20,9 @@ vendored-openssl = ["openssl/vendored"]
 nl = []
 us = []
 # Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
-mock = ["svc-gis-client-grpc/stub_client", "svc-gis-client-grpc/stub_backends"]
-
+mock = []
 # Will use a stubbed backend connection, only use for tests!
-stub_backends = []
+stub_backends = ["svc-gis-client-grpc/stub_client"]
 # Will implement stub functions for the server, only use for tests!
 stub_server = ["test_util"]
 # Only added to support client-grpc feature when running tests
@@ -58,11 +57,11 @@ tonic-health    = "0.8"
 [dependencies.lib-common]
 features = ["grpc"]
 git      = "https://github.com/Arrow-air/lib-common.git"
-tag      = "v0.1.1-develop.2"
+tag      = "v0.2.0"
 
 [dependencies.svc-gis-client-grpc]
 git = "https://github.com/Arrow-air/svc-gis.git"
-tag = "v0.0.1-develop.6"
+tag = "v0.0.1-develop.8"
 
 [dependencies.log4rs]
 features = [
