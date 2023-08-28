@@ -2,7 +2,7 @@
 description = "Arrow compliance service gRPC client"
 keywords    = ["vtol", "client", "grpc", "compliance"] # max 5
 name        = "svc-compliance-client-grpc"
-version     = "0.1.1-develop.7"
+version     = "0.1.1-develop.8"
 
 authors.workspace      = true
 categories.workspace   = true
