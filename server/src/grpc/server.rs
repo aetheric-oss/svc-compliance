@@ -12,13 +12,7 @@ pub use grpc_server::rpc_service_server::{RpcService, RpcServiceServer};
 pub use grpc_server::{FlightPlanRequest, FlightPlanResponse};
 pub use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
 pub use grpc_server::{ReadyRequest, ReadyResponse};
-use lib_common::time::datetime_to_timestamp;
-use svc_gis_client_grpc::service::Client as ServiceClient;
-use svc_gis_client_grpc::{Client, GrpcClient, RpcServiceClient};
-use svc_gis_client_grpc::{
-    Coordinates, NoFlyZone, UpdateNoFlyZonesRequest, UpdateWaypointsRequest,
-};
-use tonic::transport::Channel;
+use svc_gis_client_grpc::prelude::*;
 
 use crate::config::Config;
 use crate::region::RegionInterface;
@@ -101,17 +95,13 @@ impl RpcService for ServerImpl {
         );
         grpc_debug!("(submit_flight_plan) request: {:?}", request);
         let request = request.into_inner();
-        let response = self.region.submit_flight_plan(request.clone());
-
-        if response.is_err() {
-            return response;
-        }
+        let response = self.region.submit_flight_plan(request.clone())?;
 
         // send flight plan to AMQP
         if let Some(mq_channel) = &self.mq_channel {
             let Ok(payload) = serde_json::to_vec(&request) else {
                 grpc_error!("(submit_flight_plan) could not serialize flight plan.");
-                return response;
+                return Ok(response);
             };
 
             let result = mq_channel
@@ -132,7 +122,7 @@ impl RpcService for ServerImpl {
             }
         }
 
-        response
+        Ok(response)
     }
 
     async fn request_flight_release(
@@ -151,16 +141,14 @@ impl RpcService for ServerImpl {
 async fn update_waypoints(
     host: String,
     port: u16,
-    waypoints: &HashMap<String, Coordinates>,
+    waypoints: &HashMap<String, gis::Coordinates>,
 ) -> UpdateWaypointsStatus {
-    let nodes: Vec<svc_gis_client_grpc::client::Waypoint> = waypoints
+    let nodes: Vec<gis::Waypoint> = waypoints
         .iter()
-        .map(
-            |(label, coordinates)| svc_gis_client_grpc::client::Waypoint {
-                label: label.clone(),
-                location: Some(*coordinates),
-            },
-        )
+        .map(|(label, coordinates)| gis::Waypoint {
+            label: label.clone(),
+            location: Some(*coordinates),
+        })
         .collect();
 
     if nodes.is_empty() {
@@ -168,9 +156,11 @@ async fn update_waypoints(
         return UpdateWaypointsStatus::NoWaypoints;
     }
 
-    let request = tonic::Request::new(UpdateWaypointsRequest { waypoints: nodes });
-    let connection = GrpcClient::<RpcServiceClient<Channel>>::new_client(&host, port, "gis");
-    match connection.update_waypoints(request).await {
+    let client = GisClient::new_client(&host, port, "gis");
+    match client
+        .update_waypoints(gis::UpdateWaypointsRequest { waypoints: nodes })
+        .await
+    {
         Ok(response) => {
             grpc_debug!("(update_waypoints) RESPONSE={:?}", response);
             UpdateWaypointsStatus::Success
@@ -193,7 +183,7 @@ pub async fn waypoints_loop(config: Config, region: Box<dyn RegionInterface + Se
         config.interval_seconds_refresh_waypoints
     );
 
-    let mut cache: HashMap<String, Coordinates> = HashMap::new();
+    let mut cache: HashMap<String, gis::Coordinates> = HashMap::new();
 
     loop {
         // Pull down waypoints from regional interface
@@ -210,51 +200,18 @@ async fn update_restrictions(
     port: u16,
     restrictions: &HashMap<String, RestrictionDetails>,
 ) -> UpdateRestrictionsStatus {
-    let mut zones: Vec<NoFlyZone> = vec![];
+    let mut zones: Vec<gis::NoFlyZone> = vec![];
 
     for (label, details) in restrictions.iter() {
-        let time_start = match details.timestamp_start {
-            Some(t) => match datetime_to_timestamp(&t) {
-                Some(t) => Some(t),
-                _ => {
-                    grpc_error!("(update_restrictions) Zone `{label}`: Could not convert start time to timestamp.");
-                    grpc_error!(
-                        "(update_restrictions) Zone `{label}`: No fly zone starts immediately."
-                    );
-                    // The restriction, if reported by the civil authority, should be represented
-                    //  in our system even if we couldn't convert the timestamp.
-                    //  Therefore, we don't return an error here. We mark the start timestamp as
-                    //  None (starts immediately) and err on the side of caution.
-                    // This shouldn't occur anyway, it seems like one should always be able to convert a datetime to a timestamp.
-                    None
-                }
-            },
-            None => None,
-        };
+        let time_start = details.timestamp_start.map(|t| t.into());
+        let time_end = details.timestamp_end.map(|t| t.into());
 
-        let time_end = match details.timestamp_end {
-            Some(t) => match datetime_to_timestamp(&t) {
-                Some(t) => Some(t),
-                _ => {
-                    grpc_error!("(update_restrictions) Zone `{label}`: Could not convert end time to timestamp.");
-                    grpc_error!("(update_restrictions) Zone `{label}`: No fly zone is indefinite; manual deletion required.");
-                    // The restriction, if reported by the civil authority, should be represented
-                    //  in our system even if we couldn't convert the timestamp.
-                    //  Therefore, we don't return an error here. We mark the start timestamp as
-                    //  None (ends never) and err on the side of caution.
-                    // This shouldn't occur anyway, it seems like one should always be able to convert a datetime to a timestamp.
-                    None
-                }
-            },
-            None => None,
-        };
-
-        zones.push(NoFlyZone {
+        zones.push(gis::NoFlyZone {
             label: label.clone(),
             vertices: details
                 .vertices
                 .iter()
-                .map(|v| Coordinates {
+                .map(|v| gis::Coordinates {
                     latitude: v.latitude,
                     longitude: v.longitude,
                 })
@@ -269,9 +226,11 @@ async fn update_restrictions(
         return UpdateRestrictionsStatus::NoRestrictions;
     }
 
-    let request = tonic::Request::new(UpdateNoFlyZonesRequest { zones });
-    let connection = GrpcClient::<RpcServiceClient<Channel>>::new_client(&host, port, "gis");
-    match connection.update_no_fly_zones(request).await {
+    let client = GisClient::new_client(&host, port, "gis");
+    match client
+        .update_no_fly_zones(gis::UpdateNoFlyZonesRequest { zones })
+        .await
+    {
         Ok(response) => {
             grpc_debug!("(update_restrictions) RESPONSE={:?}", response);
             UpdateRestrictionsStatus::Success
@@ -518,13 +477,13 @@ mod tests {
         let host = "localhost".to_string();
         let port = 50008;
 
-        let mut cache: HashMap<String, Coordinates> = HashMap::new();
+        let mut cache: HashMap<String, gis::Coordinates> = HashMap::new();
         let result = update_waypoints(host.clone(), port, &cache).await;
         assert_eq!(result, UpdateWaypointsStatus::NoWaypoints);
 
         cache.insert(
             "ARROW-WAY-1".to_string(),
-            Coordinates {
+            gis::Coordinates {
                 latitude: 0.0,
                 longitude: 0.0,
             },

@@ -8,7 +8,7 @@ use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
-use svc_gis_client_grpc::Coordinates;
+use svc_gis_client_grpc::prelude::gis::Coordinates;
 use tonic::{Request, Response, Status};
 
 //

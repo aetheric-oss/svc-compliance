@@ -19,7 +19,7 @@ use chrono::{DateTime, Utc};
 use server::{FlightPlanRequest, FlightPlanResponse};
 use server::{FlightReleaseRequest, FlightReleaseResponse};
 use std::collections::HashMap;
-use svc_gis_client_grpc::Coordinates;
+use svc_gis_client_grpc::prelude::gis;
 use tonic::{Request, Response, Status};
 
 /// Generic region struct to be used to implement the region specific traits
@@ -33,7 +33,7 @@ pub struct RegionImpl {
 #[derive(Debug, Clone)]
 pub struct RestrictionDetails {
     /// The boundary vertices of the restriction
-    pub vertices: Vec<Coordinates>,
+    pub vertices: Vec<gis::Coordinates>,
 
     /// The start time of the restriction
     pub timestamp_start: Option<DateTime<Utc>>,
@@ -64,7 +64,7 @@ pub trait RegionInterface {
     async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>);
 
     /// Refresh the in memory stored waypoints
-    async fn acquire_waypoints(&self, waypoints: &mut HashMap<String, Coordinates>);
+    async fn acquire_waypoints(&self, waypoints: &mut HashMap<String, gis::Coordinates>);
 }
 
 #[cfg(test)]

@@ -12,7 +12,7 @@ license-file.workspace = true
 repository.workspace   = true
 
 [features]
-dev       = ["test_util", "tokio"]
+dev       = ["mock", "tokio", "futures"]
 test_util = ["mock", "stub_backends"]
 # Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
 mock = []
@@ -26,11 +26,12 @@ stub_backends = [
 # Will implement stub functions for the client, only use for tests!
 stub_client = ["svc-compliance"]
 # region options, can only activate one, used for tests only
-nl = ["svc-compliance?/nl"]
-us = ["svc-compliance?/us"]
+nl = ["svc-compliance?/nl", "test_util"]
+us = ["svc-compliance?/us", "test_util"]
 
 [dependencies]
 cfg-if         = "1.0"
+futures        = { version = "0.3", optional = true }
 log            = { version = "0.4" }
 prost          = "0.11"
 prost-types    = "0.11"
@@ -43,7 +44,7 @@ tower          = { version = "0.4", optional = true }
 [dependencies.lib-common]
 features = ["grpc"]
 git      = "https://github.com/Arrow-air/lib-common.git"
-tag      = "v0.1.1-develop.2"
+tag      = "v0.2.0"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]

@@ -22,16 +22,14 @@ where
     /// # Examples
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_compliance_client_grpc::client::{ReadyRequest, RpcServiceClient};
-    /// use svc_compliance_client_grpc::{Client, GrpcClient};
-    /// use svc_compliance_client_grpc::service::Client as ServiceClient;
+    /// use svc_compliance_client_grpc::prelude::*;
     /// use tonic::transport::Channel;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let connection = GrpcClient::<RpcServiceClient<Channel>>::new_client(&host, port, "compliance");
-    ///     let response = connection
-    ///         .is_ready(ReadyRequest {})
+    ///     let client = ComplianceClient::new_client(&host, port, "compliance");
+    ///     let response = client
+    ///         .is_ready(compliance::ReadyRequest {})
     ///         .await?;
     ///     println!("RESPONSE={:?}", response.into_inner());
     ///     Ok(())
@@ -53,16 +51,14 @@ where
     /// # Examples
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_compliance_client_grpc::client::{FlightPlanRequest, RpcServiceClient};
-    /// use svc_compliance_client_grpc::{Client, GrpcClient};
-    /// use svc_compliance_client_grpc::service::Client as ServiceClient;
+    /// use svc_compliance_client_grpc::prelude::*;
     /// use tonic::transport::Channel;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let connection = GrpcClient::<RpcServiceClient<Channel>>::new_client(&host, port, "compliance");
-    ///     let response = connection
-    ///         .submit_flight_plan(FlightPlanRequest {
+    ///     let client = ComplianceClient::new_client(&host, port, "compliance");
+    ///     let response = client
+    ///         .submit_flight_plan(compliance::FlightPlanRequest {
     ///             flight_plan_id: "".to_string(),
     ///             data: "".to_string(),
     ///         })
@@ -87,16 +83,14 @@ where
     /// # Examples
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_compliance_client_grpc::client::{FlightReleaseRequest, RpcServiceClient};
-    /// use svc_compliance_client_grpc::{Client, GrpcClient};
-    /// use svc_compliance_client_grpc::service::Client as ServiceClient;
+    /// use svc_compliance_client_grpc::prelude::*;
     /// use tonic::transport::Channel;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let connection = GrpcClient::<RpcServiceClient<Channel>>::new_client(&host, port, "compliance");
-    ///     let response = connection
-    ///         .request_flight_release(FlightReleaseRequest {
+    ///     let client = ComplianceClient::new_client(&host, port, "compliance");
+    ///     let response = client
+    ///         .request_flight_release(compliance::FlightReleaseRequest {
     ///             flight_plan_id: "".to_string(),
     ///             data: "".to_string(),
     ///         })

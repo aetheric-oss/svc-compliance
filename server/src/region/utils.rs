@@ -6,13 +6,13 @@ use regex::Regex;
 ///  Currently using this to read and convert waypoints file
 ///  (temporary R3 hack)
 use dms_coordinates::{Bearing, DMS};
-use svc_gis_client_grpc::Coordinates;
+use svc_gis_client_grpc::prelude::gis;
 
 /// Filter for coordinates
 #[derive(Debug, Copy, Clone)]
 pub struct CoordinateFilter {
-    min: Option<Coordinates>,
-    max: Option<Coordinates>,
+    min: Option<gis::Coordinates>,
+    max: Option<gis::Coordinates>,
 }
 
 /// Custom Error type for dms functions
