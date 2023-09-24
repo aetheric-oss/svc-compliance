@@ -5,7 +5,6 @@ pub mod macros;
 pub mod pool;
 use crate::config::Config;
 use lapin::{options::BasicPublishOptions, BasicProperties};
-use snafu::prelude::Snafu;
 
 /// Name of the AMQP exchange for flightplan messages
 pub const EXCHANGE_NAME_FLIGHTPLAN: &str = "flightplan";
@@ -17,30 +16,30 @@ pub const QUEUE_NAME_CARGO: &str = "cargo";
 pub const ROUTING_KEY_CARGO: &str = "cargo";
 
 /// Custom Error type for MQ errors
-#[derive(Debug, Snafu, Clone, Copy)]
+#[derive(thiserror::Error, Debug, Copy, Clone)]
 pub enum AMQPError {
     /// Could Not Publish
-    #[snafu(display("Could not publish to queue."))]
+    #[error("error: Could not publish to queue.")]
     CouldNotPublish,
 
     /// Could not connect to the AMQP pool.
-    #[snafu(display("Could not connect to amqp pool."))]
+    #[error("error: Could not connect to amqp pool.")]
     CouldNotConnect,
 
     /// Missing configuration
-    #[snafu(display("Missing configuration for amqp pool connection."))]
+    #[error("error: Missing configuration for amqp pool connection.")]
     MissingConfiguration,
 
     /// Could not create channel
-    #[snafu(display("Could not create channel."))]
+    #[error("error: Could not create channel.")]
     CouldNotCreateChannel,
 
     /// Could not declare queue
-    #[snafu(display("Could not declare queue."))]
+    #[error("error: Could not declare queue.")]
     CouldNotDeclareQueue,
 
     /// Could not declare exchange
-    #[snafu(display("Could not declare exchange."))]
+    #[error("error: Could not declare exchange.")]
     CouldNotDeclareExchange,
 }
 
@@ -84,7 +83,7 @@ cfg_if::cfg_if! {
                 if let Some(channel) = &self.channel {
                     channel.basic_publish(exchange, routing_key, options, payload, properties).await
                 } else {
-                    amqp_error!("(basic_publish) no channel set AMQPChannel");
+                    amqp_error!("(basic_publish) No channel set AMQPChannel.");
                     Err(lapin::Error::InvalidChannelState(lapin::ChannelState::Error))
                 }
             }
@@ -101,19 +100,18 @@ pub async fn init_mq(config: Config) -> Result<lapin::Channel, AMQPError> {
     let amqp_connection = pool.get_connection().await?;
 
     // Create channel
-    amqp_info!("(init_mq) creating channel...");
+    amqp_info!("(init_mq) Creating channel...");
     let amqp_channel = match amqp_connection.create_channel().await {
         Ok(channel) => channel,
         Err(e) => {
-            amqp_error!("(init_mq) could not create channel.");
-            amqp_debug!("(init_mq) error: {:?}", e);
+            amqp_error!("(init_mq) Could not create channel: {}", e);
             return Err(AMQPError::CouldNotCreateChannel);
         }
     };
 
     // Declare CARGO Queue
     {
-        amqp_info!("(init_mq) creating '{QUEUE_NAME_CARGO}' queue...");
+        amqp_info!("(init_mq) Creating '{QUEUE_NAME_CARGO}' queue...");
         let result = amqp_channel
             .queue_declare(
                 QUEUE_NAME_CARGO,
@@ -123,8 +121,10 @@ pub async fn init_mq(config: Config) -> Result<lapin::Channel, AMQPError> {
             .await;
 
         if let Err(e) = result {
-            amqp_error!("(init_mq) could not declare queue '{QUEUE_NAME_CARGO}'.");
-            amqp_debug!("(init_mq) error: {:?}", e);
+            amqp_error!(
+                "(init_mq) Could not declare queue '{QUEUE_NAME_CARGO}': {}",
+                e
+            );
             return Err(AMQPError::CouldNotDeclareQueue);
         }
     }
@@ -133,7 +133,7 @@ pub async fn init_mq(config: Config) -> Result<lapin::Channel, AMQPError> {
     // Declare a topic exchange
     //
     {
-        amqp_info!("(init_mq) declaring exchange '{EXCHANGE_NAME_FLIGHTPLAN}'...");
+        amqp_info!("(init_mq) Declaring exchange '{EXCHANGE_NAME_FLIGHTPLAN}'...");
         let result = amqp_channel
             .exchange_declare(
                 EXCHANGE_NAME_FLIGHTPLAN,
@@ -144,8 +144,10 @@ pub async fn init_mq(config: Config) -> Result<lapin::Channel, AMQPError> {
             .await;
 
         if let Err(e) = result {
-            amqp_error!("(init_mq) could not declare exchange '{EXCHANGE_NAME_FLIGHTPLAN}'.");
-            amqp_debug!("(init_mq) error: {:?}", e);
+            amqp_error!(
+                "(init_mq) Could not declare exchange '{EXCHANGE_NAME_FLIGHTPLAN}': {}",
+                e
+            );
             return Err(AMQPError::CouldNotDeclareExchange);
         }
     }
@@ -154,7 +156,7 @@ pub async fn init_mq(config: Config) -> Result<lapin::Channel, AMQPError> {
     // Bind the CARGO queue to the exchange
     //
     {
-        amqp_info!("(init_mq) binding queue '{QUEUE_NAME_CARGO}' to exchange '{EXCHANGE_NAME_FLIGHTPLAN}'...");
+        amqp_info!("(init_mq) Binding queue '{QUEUE_NAME_CARGO}' to exchange '{EXCHANGE_NAME_FLIGHTPLAN}'...");
         let result = amqp_channel
             .queue_bind(
                 QUEUE_NAME_CARGO,
@@ -166,8 +168,10 @@ pub async fn init_mq(config: Config) -> Result<lapin::Channel, AMQPError> {
             .await;
 
         if let Err(e) = result {
-            amqp_error!("(init_mq) could not bind queue '{QUEUE_NAME_CARGO}' to exchange.");
-            amqp_debug!("(init_mq) error: {:?}", e);
+            amqp_error!(
+                "(init_mq) Could not bind queue '{QUEUE_NAME_CARGO}' to exchange: {}",
+                e
+            );
         }
     }
 

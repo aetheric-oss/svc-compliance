@@ -10,10 +10,10 @@ fn get_log_string(function: &str, name: &str) -> String {
     }
 
     #[cfg(feature = "stub_server")]
-    return format!("([{}] {} MOCK) {} server.", lang, function, name);
+    return format!("({} MOCK)[{}] {} server.", function, lang, name);
 
     #[cfg(not(feature = "stub_server"))]
-    return format!("([{}] {}) {} server.", lang, function, name);
+    return format!("({})[{}] {} server.", function, lang, name);
 }
 
 #[tokio::test]

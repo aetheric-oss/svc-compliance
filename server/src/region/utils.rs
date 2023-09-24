@@ -2,33 +2,40 @@
 
 use regex::Regex;
 
-/// TODO(R4): Security analysis of this dependency
+// TODO(R4): Security analysis of this dependency
 ///  Currently using this to read and convert waypoints file
 ///  (temporary R3 hack)
 use dms_coordinates::{Bearing, DMS};
-use svc_gis_client_grpc::prelude::gis;
-
-/// Filter for coordinates
-#[derive(Debug, Copy, Clone)]
-pub struct CoordinateFilter {
-    min: Option<gis::Coordinates>,
-    max: Option<gis::Coordinates>,
-}
 
 /// Custom Error type for dms functions
-#[derive(Debug, Clone, Copy)]
+#[derive(thiserror::Error, Debug)]
 pub enum DmsError {
+    #[error("error: Provided DMS string is not the correct format")]
     /// Provided DMS string is not the correct format
     InvalidFormat,
+
+    #[error("error: The provided bearing string is not the correct format")]
     /// The provided bearing string is not the correct format
     InvalidBearing,
+
+    #[error("error: {0}")]
+    /// return new [`regex::Error`] with calling params
+    RegexError(#[from] regex::Error),
+
+    #[error("error: {0}")]
+    /// return new [`std::num::ParseIntError`] with calling params
+    ParseIntError(#[from] std::num::ParseIntError),
+
+    #[error("error: {0}")]
+    /// return new [`std::num::ParseFloatError`] with calling params
+    ParseFloatError(#[from] std::num::ParseFloatError),
 }
 
 /// Converts a string in DMS format (e.g. 51° 30' 0.0" N) to a decimal degree
 pub fn dms_to_double(dms: &str) -> Result<f64, DmsError> {
     let dms_fmt = r#"(?P<d>\d+)°\s*(?P<m>\d+)'\s*(?P<s>\d+\.\d+)"\s*(?P<b>N|S|E|W)"#;
 
-    let re = Regex::new(dms_fmt).unwrap();
+    let re = Regex::new(dms_fmt)?;
     let result = re.captures(dms);
     let Some(cap) = result else {
         region_error!("(dms_to_double) invalid DMS format.");
@@ -51,9 +58,9 @@ pub fn dms_to_double(dms: &str) -> Result<f64, DmsError> {
     };
 
     let wp = DMS::new(
-        deg.parse::<i32>().unwrap(),
-        min.parse::<i32>().unwrap(),
-        sec.parse::<f64>().unwrap(),
+        deg.parse::<i32>()?,
+        min.parse::<i32>()?,
+        sec.parse::<f64>()?,
         bearing,
     );
 
@@ -64,8 +71,11 @@ pub fn dms_to_double(dms: &str) -> Result<f64, DmsError> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn ut_dms_to_decimal() {
+    #[tokio::test]
+    async fn test_dms_to_decimal() {
+        crate::get_log_handle().await;
+        ut_info!("(test_dms_to_decimal) Start.");
+
         let tolerance = 0.000001;
         let dms = "9°58'1.1\"N";
         let expected = 9.966972;
@@ -86,5 +96,7 @@ mod tests {
         let expected = -8.886111;
         let result = dms_to_double(dms).unwrap();
         assert!((result - expected).abs() < tolerance);
+
+        ut_info!("(test_dms_to_decimal) Success.");
     }
 }

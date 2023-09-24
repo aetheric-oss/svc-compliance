@@ -16,9 +16,9 @@ fn get_log_string(function: &str, name: &str) -> String {
     #[cfg(not(feature = "stub_client"))]
     cfg_if::cfg_if! {
         if #[cfg(feature = "stub_backends")] {
-            return format!("([{}] {} MOCK) {} server.", lang, function, name);
+            return format!("({} MOCK)[{}] {} server.", function, lang, name);
         } else {
-            return format!("([{}] {}) {} client.", lang, function, name);
+            return format!("({})[{}] {} client.", function, lang, name);
         }
     }
 }

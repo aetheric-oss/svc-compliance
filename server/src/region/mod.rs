@@ -11,7 +11,6 @@ cfg_if::cfg_if! {
     }
 }
 
-#[allow(dead_code)]
 pub mod utils;
 
 use crate::grpc::server;
@@ -71,8 +70,11 @@ pub trait RegionInterface {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_region_code() {
+    #[tokio::test]
+    async fn test_region_code() {
+        crate::get_log_handle().await;
+        ut_info!("(test_region_code) Start.");
+
         let region_impl = RegionImpl::default();
         cfg_if::cfg_if! {
             if #[cfg(feature = "nl")] {
@@ -81,5 +83,7 @@ mod tests {
                 assert_eq!(region_impl.region, "us");
             }
         }
+
+        ut_info!("(test_region_code) Success.");
     }
 }

@@ -35,21 +35,21 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
+        log::warn!("(default) Creating Config object with default values.");
         Self::new()
     }
 }
 
 impl Config {
-    /// Default values for Config
+    /// Create new configuration object with default values
     pub fn new() -> Self {
-        log::warn!("Creating Config object with default values.");
         Config {
             docker_port_grpc: 50051,
             gis_host_grpc: String::from("svc-gis"),
             gis_port_grpc: 50008,
             interval_seconds_refresh_zones: 30,
             interval_seconds_refresh_waypoints: 30,
-            log_config: String::from("./log4rs.yaml"),
+            log_config: String::from("log4rs.yaml"),
             amqp: deadpool_lapin::Config {
                 url: None,
                 pool: None,
@@ -65,7 +65,7 @@ impl Config {
 
         config::Config::builder()
             .set_default("docker_port_grpc", 50051)?
-            .set_default("log_config", String::from("./log4rs.yaml"))?
+            .set_default("log_config", String::from("log4rs.yaml"))?
             .add_source(Environment::default().separator("__"))
             .build()?
             .try_deserialize()
@@ -74,10 +74,13 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Config;
 
-    #[test]
-    fn test_config_from_default() {
+    #[tokio::test]
+    async fn test_config_from_default() {
+        crate::get_log_handle().await;
+        ut_info!("(test_config_from_default) Start.");
+
         let config = Config::default();
 
         assert_eq!(config.docker_port_grpc, 50051);
@@ -85,37 +88,44 @@ mod tests {
         assert_eq!(config.gis_port_grpc, 50008);
         assert_eq!(config.interval_seconds_refresh_zones, 30);
         assert_eq!(config.interval_seconds_refresh_waypoints, 30);
-        assert_eq!(config.log_config, String::from("./log4rs.yaml"));
+        assert_eq!(config.log_config, String::from("log4rs.yaml"));
         assert!(config.amqp.url.is_none());
         assert!(config.amqp.pool.is_none());
+
+        ut_info!("(test_config_from_default) Success.");
     }
 
     #[tokio::test]
     async fn test_config_from_env() {
-        async move {
-            std::env::set_var("DOCKER_PORT_GRPC", "6789");
-            std::env::set_var("GIS_HOST_GRPC", "svc-gis");
-            std::env::set_var("GIS_PORT_GRPC", "50008");
-            std::env::set_var("INTERVAL_SECONDS_REFRESH_ZONES", "30");
-            std::env::set_var("INTERVAL_SECONDS_REFRESH_WAYPOINTS", "30");
-            std::env::set_var("LOG_CONFIG", "config_file.yaml");
-            std::env::set_var("AMQP__URL", "amqp://test_rabbitmq:5672");
-            std::env::set_var("AMQP__POOL__MAX_SIZE", "16");
-            std::env::set_var("AMQP__POOL__TIMEOUTS__WAIT__SECS", "2");
-            std::env::set_var("AMQP__POOL__TIMEOUTS__WAIT__NANOS", "0");
+        crate::get_log_handle().await;
+        ut_info!("(test_config_from_env) Start.");
 
-            let config = Config::try_from_env();
-            assert!(config.is_ok());
-            let config = config.unwrap();
+        std::env::set_var("DOCKER_PORT_GRPC", "6789");
+        std::env::set_var("GIS_HOST_GRPC", "svc-gis");
+        std::env::set_var("GIS_PORT_GRPC", "6798");
+        std::env::set_var("INTERVAL_SECONDS_REFRESH_ZONES", "40");
+        std::env::set_var("INTERVAL_SECONDS_REFRESH_WAYPOINTS", "40");
+        std::env::set_var("LOG_CONFIG", "config_file.yaml");
+        std::env::set_var("AMQP__URL", "amqp://test_rabbitmq:5672");
+        std::env::set_var("AMQP__POOL__MAX_SIZE", "32");
 
-            assert_eq!(config.docker_port_grpc, 6789);
-            assert_eq!(config.log_config, String::from("config_file.yaml"));
-            assert_eq!(
-                config.amqp.url,
-                Some(String::from("amqp://test_rabbitmq:5672"))
-            );
-            assert!(config.amqp.pool.is_some());
-        }
-        .await
+        let config = Config::try_from_env();
+        assert!(config.is_ok());
+        let config = config.unwrap();
+
+        assert_eq!(config.docker_port_grpc, 6789);
+        assert_eq!(config.gis_host_grpc, String::from("svc-gis"));
+        assert_eq!(config.gis_port_grpc, 6798);
+        assert_eq!(config.interval_seconds_refresh_zones, 40);
+        assert_eq!(config.interval_seconds_refresh_waypoints, 40);
+        assert_eq!(config.log_config, String::from("config_file.yaml"));
+        assert_eq!(
+            config.amqp.url,
+            Some(String::from("amqp://test_rabbitmq:5672"))
+        );
+        assert_eq!(config.amqp.get_pool_config().max_size, 32);
+        assert!(config.amqp.pool.is_some());
+
+        ut_info!("(test_config_from_env) Success.");
     }
 }

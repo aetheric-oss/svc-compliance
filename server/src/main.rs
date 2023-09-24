@@ -1,29 +1,27 @@
 //! Main function starting the server and initializing dependencies.
 
 use log::info;
-use svc_compliance::config::Config;
-use svc_compliance::grpc;
+use svc_compliance::*;
 
 ///Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
 #[cfg(not(tarpaulin_include))]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    info!("(svc-compliance) server startup.");
-
     // Will use default config settings if no environment vars are found.
     let config = Config::try_from_env().unwrap_or_default();
 
-    // Start Logger
-    let log_cfg: &str = config.log_config.as_str();
-    if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
-        panic!(
-            "(logger) could not parse log config {} found in config {:?}: {}.",
-            log_cfg, config, e
-        );
-    }
+    // Try to load log configuration from the provided log file.
+    // Will default to stdout debug logging if the file can not be loaded.
+    load_logger_config_from_file(config.log_config.as_str()).await?;
 
-    tokio::spawn(grpc::server::grpc_server(config)).await?;
+    info!("(main) Server startup.");
 
-    info!("Server shutdown.");
+    tokio::spawn(grpc::server::grpc_server(config, None)).await?;
+
+    info!("(main) Server shutdown.");
+
+    // Make sure all log message are written/ displayed before shutdown
+    log::logger().flush();
+
     Ok(())
 }

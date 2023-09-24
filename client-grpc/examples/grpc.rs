@@ -8,7 +8,7 @@ use svc_compliance_client_grpc::prelude::{compliance::*, *};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
     let client = ComplianceClient::new_client(&host, port, "compliance");
-    println!("client created");
+    println!("Client created.");
     println!(
         "NOTE: Ensure the server is running on {} or this example will fail.",
         client.get_address()

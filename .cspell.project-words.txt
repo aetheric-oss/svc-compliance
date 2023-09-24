@@ -37,3 +37,6 @@ nanos
 deadpool
 flightplan
 adsb
+oneshot
+thiserror
+anstyle

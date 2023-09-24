@@ -35,10 +35,13 @@ cfg-if      = "1.0"
 chrono      = { version = "0.4", features = ["serde"] }
 # pin clap to 4.3 for now, since 4.4 requires rustc 1.70.0 or newer. Only needed
 # for svc-gis, can be removed once resolved
-clap = { version = "4.3.24", features = ["derive"] }
+clap = { version = "=4.3.24", features = ["derive"] }
 # pin clap_lex to 0.5.0 for now, since 0.5.1 requires rustc 1.70.0 or newer.
 # Only needed for svc-gis, can be removed once resolved
-clap_lex        = "0.5.0"
+clap_lex = "=0.5.0"
+# pin anstyle to 1.0.2 for now, since 1.0.3 requires rustc 1.70.0 or newer.
+# Entire dependency can be removed once resolved.
+anstyle         = "=1.0.2"
 config          = "0.13"
 csv             = "1.2"
 deadpool-lapin  = { version = "0.10", features = ["serde"] }
@@ -54,7 +57,7 @@ prost-types     = "0.11"
 regex           = "1.7"
 serde           = { version = "1.0", features = ["derive"] }
 serde_json      = "1.0"
-snafu           = "0.7"
+thiserror       = "1.0"
 tokio           = { version = "1.28", features = ["full"] }
 tokio-util      = "0.7"
 tonic           = "0.8"
@@ -67,7 +70,7 @@ tag      = "v0.2.0"
 
 [dependencies.svc-gis-client-grpc]
 git = "https://github.com/Arrow-air/svc-gis.git"
-tag = "v0.0.1-develop.8"
+tag = "v0.1.0"
 
 [dependencies.log4rs]
 features = [

@@ -37,7 +37,7 @@ impl RegionInterface for super::RegionImpl {
         &self,
         request: FlightPlanRequest,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        region_info!("([nl] submit_flight_plan) entry.");
+        region_info!("(submit_flight_plan)[nl] entry.");
 
         //
         // TODO(R4) implement
@@ -55,7 +55,7 @@ impl RegionInterface for super::RegionImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        region_info!("([nl] request_flight_release) entry.");
+        region_info!("(request_flight_release)[nl] entry.");
 
         //
         // TODO(R4) implement
@@ -183,14 +183,22 @@ mod tests {
     use super::*;
     use crate::region::RegionImpl;
 
-    #[test]
-    fn test_region_code() {
+    #[tokio::test]
+    async fn test_region_code() {
+        crate::get_log_handle().await;
+        ut_info!("(test_region_code)[nl] Start.");
+
         let region_impl = RegionImpl::default();
         assert_eq!(region_impl.region, "nl");
+
+        ut_info!("(test_region_code)[nl] Success.");
     }
 
-    #[test]
-    fn test_submit_flight_plan() {
+    #[tokio::test]
+    async fn test_submit_flight_plan() {
+        crate::get_log_handle().await;
+        ut_info!("(test_submit_flight_plan)[nl] Start.");
+
         let region = RegionImpl::default();
         let result = region.submit_flight_plan(FlightPlanRequest {
             flight_plan_id: "".to_string(),
@@ -199,12 +207,17 @@ mod tests {
 
         assert!(result.is_ok());
         let result: FlightPlanResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
+        ut_debug!("(test_submit_flight_plan)[nl] Result: {:?}", result);
         assert_eq!(result.submitted, true);
+
+        ut_info!("(test_submit_flight_plan)[nl] Success.");
     }
 
-    #[test]
-    fn test_request_flight_release() {
+    #[tokio::test]
+    async fn test_request_flight_release() {
+        crate::get_log_handle().await;
+        ut_info!("(test_request_flight_release)[nl] Start.");
+
         let region = RegionImpl::default();
         let result = region.request_flight_release(tonic::Request::new(FlightReleaseRequest {
             flight_plan_id: "".to_string(),
@@ -213,23 +226,36 @@ mod tests {
 
         assert!(result.is_ok());
         let result: FlightReleaseResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
+        ut_debug!("(test_request_flight_release)[nl] Result: {:?}", result);
         assert_eq!(result.released, true);
+
+        ut_info!("(test_request_flight_release)[nl] Success.");
     }
 
     #[tokio::test]
     async fn test_acquire_restrictions() {
+        crate::get_log_handle().await;
+        ut_info!("(test_acquire_restrictions)[nl] Start.");
+
         let region = RegionImpl::default();
         let mut cache = HashMap::<String, RestrictionDetails>::new();
         region.acquire_restrictions(&mut cache).await;
+        ut_debug!("(test_acquire_restrictions)[nl] Cache content: {:?}", cache);
         assert!(cache.keys().len() > 0);
+
+        ut_info!("(test_acquire_restrictions)[nl] Success.");
     }
 
     #[tokio::test]
     async fn test_refresh_waypoints() {
+        crate::get_log_handle().await;
+        ut_info!("(test_refresh_waypoints)[nl] Start.");
+
         let region = RegionImpl::default();
         let mut cache = HashMap::<String, Coordinates>::new();
         region.acquire_waypoints(&mut cache).await;
         assert!(cache.keys().len() > 0);
+
+        ut_info!("(test_refresh_waypoints)[nl] Success.");
     }
 }
