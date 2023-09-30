@@ -28,3 +28,15 @@ dotenv
 protobuf
 tftpl
 stuckee
+datetime
+nofly
+logtest
+RabbitMQ
+amqp
+nanos
+deadpool
+flightplan
+adsb
+oneshot
+thiserror
+anstyle

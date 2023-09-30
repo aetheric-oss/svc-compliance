@@ -3,10 +3,10 @@ syntax = "proto3";
 package grpc;
 import "google/protobuf/timestamp.proto";
 
-// ComplianceRpc
-service ComplianceRpc {
+// RpcService
+service RpcService {
     // is ready heartbeat
-    rpc isReady (QueryIsReady) returns (ReadyResponse);
+    rpc isReady (ReadyRequest) returns (ReadyResponse);
     // submit flight plan
     rpc submitFlightPlan (FlightPlanRequest) returns (FlightPlanResponse);
     // release flight plan
@@ -25,13 +25,13 @@ message FlightPlanRequest {
 message FlightPlanResponse {
     // Flight Plan Id
     string flight_plan_id = 1;
-    // JSON data of the flight plan
+    // Status result for submitted
     bool submitted = 2;
     // Optional error or warning message
     optional string result = 3;
 }
 
-//FlightReleaseRequest
+// FlightReleaseRequest
 message FlightReleaseRequest {
     // Flight Plan Id
     string flight_plan_id = 1;
@@ -39,22 +39,23 @@ message FlightReleaseRequest {
     string data = 2;
 }
 
-//FlightReleaseResponse
+// FlightReleaseResponse
 message FlightReleaseResponse {
     // Flight Plan Id
     string flight_plan_id = 1;
-    // JSON data of the flight plan
+    // Status result for released
     bool released = 2;
     // Optional error or warning message
     optional string result = 3;
 }
 
-// Are you Ready?
-message QueryIsReady {
+// ReadyRequest body
+message ReadyRequest {
     // No arguments
 }
 
-// I'm Ready
+// ReadyResponse body
+// Indicates if the service is ready for requests
 message ReadyResponse {
 
     // True if ready

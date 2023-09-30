@@ -1,7 +1,11 @@
-//! Exposes svc-compliance Client Functions
+#![doc = include_str!("../README.md")]
 
-/// Client Library: Client Functions, Structs
-pub mod client {
-    #![allow(unused_qualifications)]
-    include!("grpc.rs");
-}
+pub mod client;
+pub mod prelude;
+pub mod service;
+
+use client::*;
+
+use lib_common::log_macros;
+use tonic::async_trait;
+use tonic::transport::Channel;

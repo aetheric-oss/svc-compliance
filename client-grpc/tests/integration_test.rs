@@ -1,6 +1,10 @@
 //! Integration Tests
-//!
+
 fn get_log_string(function: &str, name: &str) -> String {
+    #[cfg(feature = "stub_client")]
+    return format!("({} MOCK) {} client.", function, name);
+
+    #[cfg(not(feature = "stub_client"))]
     cfg_if::cfg_if! {
         if #[cfg(feature = "nl")] {
             let lang = "nl";
@@ -9,34 +13,36 @@ fn get_log_string(function: &str, name: &str) -> String {
         }
     }
 
-    #[cfg(feature = "stub_server")]
-    return format!("({} MOCK)[{}] {} server.", function, lang, name);
-
-    #[cfg(not(feature = "stub_server"))]
-    return format!("({})[{}] {} server.", function, lang, name);
+    #[cfg(not(feature = "stub_client"))]
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "stub_backends")] {
+            return format!("({} MOCK)[{}] {} server.", function, lang, name);
+        } else {
+            return format!("({})[{}] {} client.", function, lang, name);
+        }
+    }
 }
 
 #[tokio::test]
-async fn test_server_requests_and_logs() {
+async fn test_client_requests_and_logs() {
     use logtest::Logger;
-    use svc_compliance::grpc::server::*;
+
+    use svc_compliance_client_grpc::prelude::*;
 
     let name = "compliance";
+    let (server_host, server_port) =
+        lib_common::grpc::get_endpoint_from_env("GRPC_HOST", "GRPC_PORT");
+
+    let client = ComplianceClient::new_client(&server_host, server_port, name);
 
     // Start the logger.
     let mut logger = Logger::start();
 
     //test_is_ready_request_logs
     {
-        let imp = ServerImpl {
-            mq_channel: None,
-            region: Box::<svc_compliance::region::RegionImpl>::default(),
-        };
-
-        let result = imp.is_ready(tonic::Request::new(ReadyRequest {})).await;
+        let result = client.is_ready(compliance::ReadyRequest {}).await;
+        println!("{:?}", result);
         assert!(result.is_ok());
-        let result: ReadyResponse = result.unwrap().into_inner();
-        assert_eq!(result.ready, true);
 
         // Search for the expected log message
         let expected = get_log_string("is_ready", name);

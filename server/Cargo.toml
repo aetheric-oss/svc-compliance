@@ -1,33 +1,76 @@
 [package]
+description = "Arrow compliance service gRPC server"
+keywords    = ["vtol", "server", "grpc", "compliance"] # max 5
+name        = "svc-compliance"
+version     = "0.1.1-develop.8"
+
+authors.workspace      = true
 categories.workspace   = true
-description            = "Arrow compliance service GRPC server"
 edition.workspace      = true
 homepage.workspace     = true
-keywords.workspace     = true
 license-file.workspace = true
-name                   = "svc-compliance"
 repository.workspace   = true
-version                = "0.1.0"
 
 [features]
-vendored-openssl = ['openssl/vendored']
+default          = []
+dev              = ["test_util"]
+test_util        = ["mock", "stub_backends"]
+vendored-openssl = ["openssl/vendored"]
+# region options, can only activate one
+nl = []
+us = []
+# Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
+mock = []
+# Will use a stubbed backend connection, only use for tests!
+stub_backends = ["svc-gis-client-grpc/stub_client"]
+# Will implement stub functions for the server, only use for tests!
+stub_server = ["test_util"]
+# Only added to support client-grpc feature when running tests
+stub_client = ["stub_backends"]
 
 [dependencies]
-cargo-husky  = "1"
-chrono       = { version = "0.4", features = ["serde"] }
-dotenv       = "0.15"
-hyper        = "0.14"
-log          = "0.4"
-openssl      = "0.10"
-prost        = "0.11"
-prost-build  = "0.11"
-prost-types  = "0.11"
-serde        = "1.0"
-serde_json   = "1.0"
-tokio        = { version = "1.20", features = ["full"] }
-tokio-util   = "0.7"
-tonic        = "0.8"
-tonic-health = "0.7"
+anyhow      = "1.0"
+cargo-husky = "1"
+cfg-if      = "1.0"
+chrono      = { version = "0.4", features = ["serde"] }
+# pin clap to 4.3 for now, since 4.4 requires rustc 1.70.0 or newer. Only needed
+# for svc-gis, can be removed once resolved
+clap = { version = "=4.3.24", features = ["derive"] }
+# pin clap_lex to 0.5.0 for now, since 0.5.1 requires rustc 1.70.0 or newer.
+# Only needed for svc-gis, can be removed once resolved
+clap_lex = "=0.5.0"
+# pin anstyle to 1.0.2 for now, since 1.0.3 requires rustc 1.70.0 or newer.
+# Entire dependency can be removed once resolved.
+anstyle         = "=1.0.2"
+config          = "0.13"
+csv             = "1.2"
+deadpool-lapin  = { version = "0.10", features = ["serde"] }
+dms-coordinates = "1.1"
+dotenv          = "0.15"
+hyper           = "0.14"
+lapin           = "2.1"
+log             = "0.4"
+openssl         = "0.10"
+prost           = "0.11"
+prost-build     = "0.11"
+prost-types     = "0.11"
+regex           = "1.7"
+serde           = { version = "1.0", features = ["derive"] }
+serde_json      = "1.0"
+thiserror       = "1.0"
+tokio           = { version = "1.28", features = ["full"] }
+tokio-util      = "0.7"
+tonic           = "0.8"
+tonic-health    = "0.8"
+
+[dependencies.lib-common]
+features = ["grpc"]
+git      = "https://github.com/Arrow-air/lib-common.git"
+tag      = "v0.2.0"
+
+[dependencies.svc-gis-client-grpc]
+git = "https://github.com/Arrow-air/svc-gis.git"
+tag = "v0.1.0"
 
 [dependencies.log4rs]
 features = [
@@ -38,10 +81,18 @@ features = [
 ]
 version = "1.2"
 
+[dev-dependencies]
+logtest = "2.0"
+
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default
 features         = ["user-hooks"]
 version          = "1"
+
+# Make sure we enable the required modules when running tests
+[dev-dependencies.svc-compliance]
+features = ["dev"]
+path     = "."
 
 [build-dependencies]
 tonic-build = "0.8"

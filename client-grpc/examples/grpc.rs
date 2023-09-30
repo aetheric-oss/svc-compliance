@@ -1,64 +1,36 @@
 //! gRPC client implementation
-
-use std::env;
-#[allow(unused_qualifications, missing_docs)]
-use svc_compliance_client_grpc::client::{
-    compliance_rpc_client::ComplianceRpcClient, QueryIsReady,
-};
-
-/// Provide endpoint url to use
-pub fn get_grpc_endpoint() -> String {
-    //parse socket address from env variable or take default value
-    let address = match env::var("SERVER_HOSTNAME") {
-        Ok(val) => val,
-        Err(_) => "localhost".to_string(), // default value
-    };
-
-    let port = match env::var("SERVER_PORT_GRPC") {
-        Ok(val) => val,
-        Err(_) => "50051".to_string(), // default value
-    };
-
-    format!("http://{}:{}", address, port)
-}
+//!
+use lib_common::grpc::get_endpoint_from_env;
+use svc_compliance_client_grpc::prelude::{compliance::*, *};
 
 /// Example svc-compliance-client-grpc
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let grpc_endpoint = get_grpc_endpoint();
-
+    let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+    let client = ComplianceClient::new_client(&host, port, "compliance");
+    println!("Client created.");
     println!(
         "NOTE: Ensure the server is running on {} or this example will fail.",
-        grpc_endpoint
+        client.get_address()
     );
 
-    let mut client = ComplianceRpcClient::connect(grpc_endpoint).await?;
-
-    println!("Client created");
-
-    let response = client
-        .is_ready(tonic::Request::new(QueryIsReady {}))
-        .await?;
+    let response = client.is_ready(ReadyRequest {}).await?;
 
     println!("is_ready RESPONSE={:?}", response.into_inner());
 
     let response = client
-        .submit_flight_plan(tonic::Request::new(
-            svc_compliance_client_grpc::client::FlightPlanRequest {
-                flight_plan_id: "".to_string(),
-                data: "".to_string(),
-            },
-        ))
+        .submit_flight_plan(FlightPlanRequest {
+            flight_plan_id: "".to_string(),
+            data: "".to_string(),
+        })
         .await?;
     println!("submit_flight_plan RESPONSE={:?}", response.into_inner());
 
     let response = client
-        .request_flight_release(tonic::Request::new(
-            svc_compliance_client_grpc::client::FlightReleaseRequest {
-                flight_plan_id: "".to_string(),
-                data: "".to_string(),
-            },
-        ))
+        .request_flight_release(FlightReleaseRequest {
+            flight_plan_id: "".to_string(),
+            data: "".to_string(),
+        })
         .await?;
     println!(
         "request_flight_release RESPONSE={:?}",

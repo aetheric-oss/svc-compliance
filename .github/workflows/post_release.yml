@@ -79,11 +79,17 @@ jobs:
         id: grpc_api_sync_s3
         run: |
           aws s3 cp ./out/${{ github.event.repository.name }}-grpc-api.json "s3://${{ secrets.AWS_S3_SERVICES_DOCS_BUCKET }}${{ env.AWS_S3_DOCS_GRPC_DEST_PATH }}${BRANCHPATH}/grpc-api.json"
+
   docker_build:
     name: Build and push Docker image
     runs-on: ubuntu-latest
     concurrency:
       group: docker-build-${{ github.ref_name }}
+    strategy:
+      matrix:
+        region:
+          - nl
+          - us
     env:
       DOCKER_IMAGE: ghcr.io/${{ github.repository }}
     steps:
@@ -113,10 +119,11 @@ jobs:
         with:
           images: ${{ env.DOCKER_IMAGE }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern=v{{version}},value=${{ github.ref_name }}
-            type=semver,pattern=v{{major}}.{{minor}},value=${{ github.ref_name }}
+            type=edge,branch=main,suffix=-${{ matrix.region }}
+            type=ref,event=branch,suffix=-${{ matrix.region }}
+            type=ref,event=pr,suffix=-${{ matrix.region }}
+            type=semver,pattern=v{{version}},value=${{ github.ref_name }},suffix=-${{ matrix.region }}
+            type=semver,pattern=v{{major}}.{{minor}},value=${{ github.ref_name }},suffix=-${{ matrix.region }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
@@ -127,6 +134,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             PACKAGE_NAME=${{ github.event.repository.name }}
+            ENABLE_FEATURES: ${{ matrix.region }}
 
   rust-docs:
     name: Generate and sync Rust docs

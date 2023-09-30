@@ -1,21 +1,65 @@
 [package]
+description = "Arrow compliance service gRPC client"
+keywords    = ["vtol", "client", "grpc", "compliance"] # max 5
+name        = "svc-compliance-client-grpc"
+version     = "0.1.1-develop.8"
+
+authors.workspace      = true
 categories.workspace   = true
-description            = "Arrow template service GRPC client"
 edition.workspace      = true
 homepage.workspace     = true
-keywords.workspace     = true
 license-file.workspace = true
-name                   = "svc-compliance-client-grpc"
 repository.workspace   = true
-version                = "0.1.0"
+
+[features]
+dev       = ["mock", "tokio", "futures"]
+test_util = ["mock", "stub_backends"]
+# Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
+mock = []
+# Will use a stubbed server connection, only use for tests!
+stub_backends = [
+  "svc-compliance/stub_server",
+  "lib-common/grpc_mock",
+  "tower",
+  "tokio",
+]
+# Will implement stub functions for the client, only use for tests!
+stub_client = ["svc-compliance"]
+# region options, can only activate one, used for tests only
+nl = ["svc-compliance?/nl", "test_util"]
+us = ["svc-compliance?/us", "test_util"]
 
 [dependencies]
-prost       = "0.11"
-prost-types = "0.11"
-tonic       = "0.8"
+cfg-if         = "1.0"
+futures        = { version = "0.3", optional = true }
+log            = { version = "0.4" }
+prost          = "0.11"
+prost-types    = "0.11"
+serde          = { version = "1.0", features = ["derive"] }
+serde_json     = "1.0"
+svc-compliance = { path = "../server", optional = true }
+tonic          = "0.8"
+tower          = { version = "0.4", optional = true }
+
+[dependencies.lib-common]
+features = ["grpc"]
+git      = "https://github.com/Arrow-air/lib-common.git"
+tag      = "v0.2.0"
+
+[dependencies.tokio]
+features = ["macros", "rt-multi-thread"]
+optional = true
+version  = "1.28"
 
 [dev-dependencies]
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+futures-lite = "1.13"
+lapin        = "2.1"
+logtest      = "2.0"
+
+# Make sure we enable the required modules for testing
+[dev-dependencies.svc-compliance-client-grpc]
+features = ["dev"] # change from 'dev' to 'tokio' for non-stub examples run
+path     = "."
 
 [[example]]
 name = "grpc"
