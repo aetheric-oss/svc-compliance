@@ -2,7 +2,7 @@
 description = "Arrow compliance service gRPC server"
 keywords    = ["vtol", "server", "grpc", "compliance"] # max 5
 name        = "svc-compliance"
-version     = "0.1.1-develop.8"
+version     = "0.2.0"
 
 authors.workspace      = true
 categories.workspace   = true
@@ -42,6 +42,7 @@ clap_lex = "=0.5.0"
 # pin anstyle to 1.0.2 for now, since 1.0.3 requires rustc 1.70.0 or newer.
 # Entire dependency can be removed once resolved.
 anstyle         = "=1.0.2"
+anstyle-parse   = "=0.2.1"
 config          = "0.13"
 csv             = "1.2"
 deadpool-lapin  = { version = "0.10", features = ["serde"] }
