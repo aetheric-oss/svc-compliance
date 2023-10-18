@@ -111,6 +111,47 @@ end
 
 ```
 
+### Flight Release/Plan Approval
+
+```mermaid
+sequenceDiagram
+    participant scheduler as svc-scheduler
+    participant storage as svc-storage
+    participant compliance as svc-compliance
+    participant authority as Aviation Authority API
+
+    alt loop
+    compliance->>+storage: Get flight plans up to N minutes<br>from now with no flight approval
+    storage->>+compliance: List of unapproved flight plans
+    compliance->>compliance: Remove cancelled/finished flights<br>from cache
+    compliance->>compliance: Add rest to cache
+
+    alt for_each unsubmitted flight plan in cache
+        compliance->>authority: Request flight release
+        compliance->>compliance: Mark request as<br> submitted/pending in cache
+    end
+
+    alt for_each flight plan in cache
+        compliance->>authority: Check status of flight release
+        authority->>compliance: Status
+        alt if_approved
+            compliance->>storage: Update flight plan record<br>release approval details
+            compliance->>compliance: Remove from cache
+        else if_denied
+            compliance->>storage: Update flight plan record<br>release denial details
+            compliance->>scheduler: Cancel flight
+            scheduler->>scheduler: Add flight cancellation<br>to order book
+            scheduler->>compliance: Added to order book
+            compliance->>compliance: Mark in cache as cancelling
+            Note over scheduler: cancelling a flight may involve<br>re-routing or aircraft re-selection
+            scheduler->>scheduler: Cancel flight plan and<br>associated itineraries
+            scheduler->>storage: Mark flight plan(s) as cancelled
+        end
+    end
+
+    end
+```
+
 ### Cleanup
 
 No special cleanup events.

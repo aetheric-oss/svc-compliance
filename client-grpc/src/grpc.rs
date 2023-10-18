@@ -1,54 +1,3 @@
-/// FlightPlanRequest
-#[derive(serde::Serialize)]
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightPlanRequest {
-    /// Flight Plan Id
-    #[prost(string, tag = "1")]
-    pub flight_plan_id: ::prost::alloc::string::String,
-    /// JSON data of the flight plan
-    #[prost(string, tag = "2")]
-    pub data: ::prost::alloc::string::String,
-}
-/// FlightPlanResponse
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightPlanResponse {
-    /// Flight Plan Id
-    #[prost(string, tag = "1")]
-    pub flight_plan_id: ::prost::alloc::string::String,
-    /// Status result for submitted
-    #[prost(bool, tag = "2")]
-    pub submitted: bool,
-    /// Optional error or warning message
-    #[prost(string, optional, tag = "3")]
-    pub result: ::core::option::Option<::prost::alloc::string::String>,
-}
-/// FlightReleaseRequest
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightReleaseRequest {
-    /// Flight Plan Id
-    #[prost(string, tag = "1")]
-    pub flight_plan_id: ::prost::alloc::string::String,
-    /// JSON data of the flight plan
-    #[prost(string, tag = "2")]
-    pub data: ::prost::alloc::string::String,
-}
-/// FlightReleaseResponse
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightReleaseResponse {
-    /// Flight Plan Id
-    #[prost(string, tag = "1")]
-    pub flight_plan_id: ::prost::alloc::string::String,
-    /// Status result for released
-    #[prost(bool, tag = "2")]
-    pub released: bool,
-    /// Optional error or warning message
-    #[prost(string, optional, tag = "3")]
-    pub result: ::core::option::Option<::prost::alloc::string::String>,
-}
 /// ReadyRequest body
 ///
 /// No arguments
@@ -153,46 +102,6 @@ pub mod rpc_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static("/grpc.RpcService/isReady");
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// submit flight plan
-        pub async fn submit_flight_plan(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FlightPlanRequest>,
-        ) -> Result<tonic::Response<super::FlightPlanResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/grpc.RpcService/submitFlightPlan",
-            );
-            self.inner.unary(request.into_request(), path, codec).await
-        }
-        /// release flight plan
-        pub async fn request_flight_release(
-            &mut self,
-            request: impl tonic::IntoRequest<super::FlightReleaseRequest>,
-        ) -> Result<tonic::Response<super::FlightReleaseResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/grpc.RpcService/requestFlightRelease",
-            );
             self.inner.unary(request.into_request(), path, codec).await
         }
     }

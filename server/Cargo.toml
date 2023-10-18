@@ -59,7 +59,7 @@ regex           = "1.7"
 serde           = { version = "1.0", features = ["derive"] }
 serde_json      = "1.0"
 thiserror       = "1.0"
-tokio           = { version = "1.28", features = ["full"] }
+tokio           = { version = "1.33", features = ["full"] }
 tokio-util      = "0.7"
 tonic           = "0.8"
 tonic-health    = "0.8"
@@ -72,6 +72,11 @@ tag      = "v0.2.0"
 [dependencies.svc-gis-client-grpc]
 git = "https://github.com/Arrow-air/svc-gis.git"
 tag = "v0.1.0"
+
+[dependencies.svc-storage-client-grpc]
+features = ["flight_plan"]
+git      = "https://github.com/Arrow-air/svc-storage.git"
+tag      = "v0.11.1-develop.0"
 
 [dependencies.log4rs]
 features = [
