@@ -16,6 +16,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("(main) Server startup.");
 
+    tokio::spawn(crate::jobs::flight_release::flight_release_loop(
+        config.clone(),
+        Box::<crate::region::RegionImpl>::default(),
+    ));
+
+    tokio::spawn(crate::jobs::restrictions::restrictions_loop(
+        config.clone(),
+        Box::<crate::region::RegionImpl>::default(),
+    ));
+
+    tokio::spawn(crate::jobs::corridors::waypoints_loop(
+        config.clone(),
+        Box::<crate::region::RegionImpl>::default(),
+    ));
+
     tokio::spawn(grpc::server::grpc_server(config, None)).await?;
 
     info!("(main) Server shutdown.");

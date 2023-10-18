@@ -9,6 +9,7 @@ pub mod test_util;
 pub mod amqp;
 pub mod config;
 pub mod grpc;
+pub mod jobs;
 pub mod region;
 
 pub use crate::config::Config;

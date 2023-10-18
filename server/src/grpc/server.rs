@@ -7,19 +7,14 @@ mod grpc_server {
 }
 
 pub use crate::amqp::init_mq;
-use crate::region::RestrictionDetails;
 pub use grpc_server::rpc_service_server::{RpcService, RpcServiceServer};
-pub use grpc_server::{FlightPlanRequest, FlightPlanResponse};
-pub use grpc_server::{FlightReleaseRequest, FlightReleaseResponse};
 pub use grpc_server::{ReadyRequest, ReadyResponse};
-use svc_gis_client_grpc::prelude::*;
 
 use crate::config::Config;
 use crate::region::RegionInterface;
 use crate::shutdown_signal;
 
 use core::fmt;
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -31,32 +26,6 @@ pub struct ServerImpl {
 
     /// Region interface
     pub region: Box<dyn RegionInterface + Send + Sync>,
-}
-
-/// Results of updating restrictions
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum UpdateRestrictionsStatus {
-    /// Restrictions were updated
-    Success,
-
-    /// No restrictions were updated
-    NoRestrictions,
-
-    /// Request to gRPC server failed
-    RequestFailure,
-}
-
-/// Results of updating waypoints
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum UpdateWaypointsStatus {
-    /// Waypoints were updated
-    Success,
-
-    /// No waypoints were updated
-    NoWaypoints,
-
-    /// Request to gRPC server failed
-    RequestFailure,
 }
 
 impl fmt::Debug for ServerImpl {
@@ -84,182 +53,45 @@ impl RpcService for ServerImpl {
         Ok(Response::new(response))
     }
 
-    async fn submit_flight_plan(
-        &self,
-        request: Request<FlightPlanRequest>,
-    ) -> Result<Response<FlightPlanResponse>, Status> {
-        grpc_info!(
-            "(submit_flight_plan)[{}] compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(submit_flight_plan) [{:?}].", request);
-        let request = request.into_inner();
-        let response = self.region.submit_flight_plan(request.clone())?;
+    // async fn submit_flight_plan(
+    //     &self,
+    //     request: Request<FlightPlanRequest>,
+    // ) -> Result<Response<FlightPlanResponse>, Status> {
+    //     grpc_info!(
+    //         "(submit_flight_plan)[{}] compliance server.",
+    //         self.region.get_region()
+    //     );
+    //     grpc_debug!("(submit_flight_plan) [{:?}].", request);
+    //     let request = request.into_inner();
+    //     let response = self.region.submit_flight_plan(request.clone()).await?;
 
-        // send flight plan to AMQP
-        if let Some(mq_channel) = &self.mq_channel {
-            let Ok(payload) = serde_json::to_vec(&request) else {
-                grpc_error!("(submit_flight_plan) Could not serialize flight plan.");
-                return Ok(response);
-            };
+    //     // send flight plan to AMQP
+    //     if let Some(mq_channel) = &self.mq_channel {
+    //         let Ok(payload) = serde_json::to_vec(&request) else {
+    //             grpc_error!("(submit_flight_plan) Could not serialize flight plan.");
+    //             return Ok(response);
+    //         };
 
-            let result = mq_channel
-                .basic_publish(
-                    crate::amqp::EXCHANGE_NAME_FLIGHTPLAN,
-                    crate::amqp::QUEUE_NAME_CARGO,
-                    lapin::options::BasicPublishOptions::default(),
-                    &payload,
-                    lapin::BasicProperties::default(),
-                )
-                .await;
+    //         let result = mq_channel
+    //             .basic_publish(
+    //                 crate::amqp::EXCHANGE_NAME_FLIGHTPLAN,
+    //                 crate::amqp::QUEUE_NAME_CARGO,
+    //                 lapin::options::BasicPublishOptions::default(),
+    //                 &payload,
+    //                 lapin::BasicProperties::default(),
+    //             )
+    //             .await;
 
-            match result {
-                Ok(_) => grpc_info!("(submit_flight_plan) Telemetry pushed to RabbitMQ."),
-                Err(e) => {
-                    grpc_error!("(submit_flight_plan) Telemetry push to RabbitMQ failed: {e}")
-                }
-            }
-        }
+    //         match result {
+    //             Ok(_) => grpc_info!("(submit_flight_plan) Telemetry pushed to RabbitMQ."),
+    //             Err(e) => {
+    //                 grpc_error!("(submit_flight_plan) Telemetry push to RabbitMQ failed: {e}")
+    //             }
+    //         }
+    //     }
 
-        Ok(response)
-    }
-
-    async fn request_flight_release(
-        &self,
-        request: Request<FlightReleaseRequest>,
-    ) -> Result<Response<FlightReleaseResponse>, Status> {
-        grpc_info!(
-            "(request_flight_release)[{}] compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(request_flight_release) [{:?}].", request);
-        self.region.request_flight_release(request)
-    }
-}
-
-async fn update_waypoints(
-    host: String,
-    port: u16,
-    waypoints: &HashMap<String, gis::Coordinates>,
-) -> UpdateWaypointsStatus {
-    let nodes: Vec<gis::Waypoint> = waypoints
-        .iter()
-        .map(|(label, coordinates)| gis::Waypoint {
-            label: label.clone(),
-            location: Some(*coordinates),
-        })
-        .collect();
-
-    if nodes.is_empty() {
-        grpc_warn!("(update_waypoints) No waypoints to update.");
-        return UpdateWaypointsStatus::NoWaypoints;
-    }
-
-    let client = GisClient::new_client(&host, port, "gis");
-    match client
-        .update_waypoints(gis::UpdateWaypointsRequest { waypoints: nodes })
-        .await
-    {
-        Ok(response) => {
-            grpc_debug!("(update_waypoints) Got response: {:?}", response);
-            UpdateWaypointsStatus::Success
-        }
-        Err(e) => {
-            grpc_error!("(update_waypoints) {:?}", e);
-            UpdateWaypointsStatus::RequestFailure
-        }
-    }
-}
-
-/// Periodically pulls down waypoints from the regional interface and
-///  pushes them to the GIS microservice
-pub async fn waypoints_loop(config: Config, region: Box<dyn RegionInterface + Send + Sync>) {
-    let host = config.gis_host_grpc;
-    let port = config.gis_port_grpc;
-
-    grpc_info!(
-        "(waypoints_loop) Starting loop with interval: {} seconds.",
-        config.interval_seconds_refresh_waypoints
-    );
-
-    let mut cache: HashMap<String, gis::Coordinates> = HashMap::new();
-
-    loop {
-        // Pull down waypoints from regional interface
-        region.acquire_waypoints(&mut cache).await;
-        update_waypoints(host.clone(), port, &cache).await;
-        std::thread::sleep(std::time::Duration::from_secs(
-            config.interval_seconds_refresh_waypoints as u64,
-        ));
-    }
-}
-
-async fn update_restrictions(
-    host: String,
-    port: u16,
-    restrictions: &HashMap<String, RestrictionDetails>,
-) -> UpdateRestrictionsStatus {
-    let mut zones: Vec<gis::NoFlyZone> = vec![];
-
-    for (label, details) in restrictions.iter() {
-        let time_start = details.timestamp_start.map(|t| t.into());
-        let time_end = details.timestamp_end.map(|t| t.into());
-
-        zones.push(gis::NoFlyZone {
-            label: label.clone(),
-            vertices: details
-                .vertices
-                .iter()
-                .map(|v| gis::Coordinates {
-                    latitude: v.latitude,
-                    longitude: v.longitude,
-                })
-                .collect(),
-            time_start,
-            time_end,
-        });
-    }
-
-    if zones.is_empty() {
-        grpc_warn!("(update_restrictions) No restrictions to update.");
-        return UpdateRestrictionsStatus::NoRestrictions;
-    }
-
-    let client = GisClient::new_client(&host, port, "gis");
-    match client
-        .update_no_fly_zones(gis::UpdateNoFlyZonesRequest { zones })
-        .await
-    {
-        Ok(response) => {
-            grpc_debug!("(update_restrictions) Got response: {:?}", response);
-            UpdateRestrictionsStatus::Success
-        }
-        Err(e) => {
-            grpc_error!("(update_restrictions) {:?}", e);
-            UpdateRestrictionsStatus::RequestFailure
-        }
-    }
-}
-
-/// Periodically pulls down restrictions from the regional interface and
-///  pushes them to the GIS microservice
-pub async fn restrictions_loop(config: Config, region: Box<dyn RegionInterface + Send + Sync>) {
-    let host = config.gis_host_grpc;
-    let port = config.gis_port_grpc;
-    let mut cache: HashMap<String, RestrictionDetails> = HashMap::new();
-
-    grpc_info!(
-        "(restrictions_loop) Starting loop with interval: {} seconds.",
-        config.interval_seconds_refresh_zones
-    );
-
-    loop {
-        region.acquire_restrictions(&mut cache).await;
-        update_restrictions(host.clone(), port, &cache).await;
-        std::thread::sleep(std::time::Duration::from_secs(
-            config.interval_seconds_refresh_zones as u64,
-        ));
-    }
+    //     Ok(response)
+    // }
 }
 
 /// Starts the grpc servers for this microservice using the provided configuration
@@ -299,16 +131,6 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         mq_channel: Some(mq_channel),
         region: Box::<crate::region::RegionImpl>::default(),
     };
-
-    tokio::spawn(restrictions_loop(
-        config.clone(),
-        Box::<crate::region::RegionImpl>::default(),
-    ));
-
-    tokio::spawn(waypoints_loop(
-        config.clone(),
-        Box::<crate::region::RegionImpl>::default(),
-    ));
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter

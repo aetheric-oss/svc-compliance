@@ -1,5 +1,7 @@
 //! Provides region specific implementations for the compliance functions
 
+use svc_storage_client_grpc::prelude::flight_plan;
+
 #[macro_use]
 pub mod macros;
 
@@ -13,13 +15,10 @@ cfg_if::cfg_if! {
 
 pub mod utils;
 
-use crate::grpc::server;
 use chrono::{DateTime, Utc};
-use server::{FlightPlanRequest, FlightPlanResponse};
-use server::{FlightReleaseRequest, FlightReleaseResponse};
 use std::collections::HashMap;
 use svc_gis_client_grpc::prelude::gis;
-use tonic::{Request, Response, Status};
+use tonic::Status;
 
 /// Generic region struct to be used to implement the region specific traits
 #[derive(Debug, Clone)]
@@ -41,6 +40,32 @@ pub struct RestrictionDetails {
     pub timestamp_end: Option<DateTime<Utc>>,
 }
 
+/// Status of a request to a regional authority
+#[derive(Debug, Clone, Copy)]
+pub enum RequestStatus {
+    /// The request was approved
+    Approved,
+
+    /// The request was denied
+    Denied,
+
+    /// The request is pending
+    Pending,
+}
+
+/// Response from a regional authority
+#[derive(Debug, Clone)]
+pub struct AuthorityResponse {
+    /// The flight plan ID
+    pub flight_plan_id: String,
+
+    /// The status of the request
+    pub status: RequestStatus,
+
+    /// The timestamp of the response
+    pub timestamp: DateTime<Utc>,
+}
+
 /// Interface to regional authorities
 #[tonic::async_trait]
 pub trait RegionInterface {
@@ -48,16 +73,22 @@ pub trait RegionInterface {
     fn get_region(&self) -> &str;
 
     /// Submit a new flight plan for the region
-    fn submit_flight_plan(
+    async fn submit_flight_plan(&self, request: &flight_plan::Object) -> Result<(), Status>;
+
+    /// Request the status of a flight plan
+    async fn get_flight_plan_status(
         &self,
-        request: FlightPlanRequest,
-    ) -> Result<Response<FlightPlanResponse>, Status>;
+        flight_plan_id: &String,
+    ) -> Result<AuthorityResponse, Status>;
 
     /// Request a flight plan release for the region
-    fn request_flight_release(
+    async fn request_flight_release(&self, request: &flight_plan::Object) -> Result<(), Status>;
+
+    /// Request the status of a flight plan release for the region
+    async fn get_flight_release_status(
         &self,
-        request: Request<FlightReleaseRequest>,
-    ) -> Result<Response<FlightReleaseResponse>, Status>;
+        flight_plan_id: &String,
+    ) -> Result<AuthorityResponse, Status>;
 
     /// Refresh the in memory stored restrictions
     async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>);
