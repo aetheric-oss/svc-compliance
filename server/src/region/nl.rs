@@ -1,9 +1,8 @@
 //! Region implementation for The Netherlands (NL)
 
-use crate::grpc::server::{
-    FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
-};
+use crate::grpc::server::{FlightPlanRequest, FlightPlanResponse, FlightReleaseResponse};
 
+use super::{AuthorityResponse, FlightReleaseRequest, RequestStatus};
 use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
 use chrono::{Duration, Utc};
@@ -33,40 +32,54 @@ impl RegionInterface for super::RegionImpl {
         &self.region
     }
 
-    fn submit_flight_plan(
-        &self,
-        request: FlightPlanRequest,
-    ) -> Result<Response<FlightPlanResponse>, Status> {
+    async fn submit_flight_plan(&self, request: &flight_plan::Object) -> Result<(), Status> {
         region_info!("(submit_flight_plan)[nl] entry.");
 
-        //
-        // TODO(R4) implement
-        //
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
 
-        let flight_plan_id = request.flight_plan_id;
-        Ok(Response::new(FlightPlanResponse {
-            flight_plan_id,
-            submitted: true,
-            result: None,
-        }))
+        Ok(())
     }
 
-    fn request_flight_release(
+    async fn get_flight_plan_status(
         &self,
-        request: Request<FlightReleaseRequest>,
-    ) -> Result<Response<FlightReleaseResponse>, Status> {
+        flight_plan_id: &String,
+    ) -> Result<AuthorityResponse, Status> {
+        region_info!("(get_flight_plan_status)[nl] entry.");
+
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
+        Ok(AuthorityResponse {
+            flight_plan_id: flight_plan_id.clone(),
+            status: RequestStatus::Approved,
+            timestamp: Utc::now(),
+        })
+    }
+
+    /// Request flight release for a flight plan
+    async fn request_flight_release(&self, request: &flight_plan::Object) -> Result<(), Status> {
         region_info!("(request_flight_release)[nl] entry.");
 
-        //
-        // TODO(R4) implement
-        //
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
 
-        let flight_plan_id = request.into_inner().flight_plan_id;
-        Ok(Response::new(FlightReleaseResponse {
-            flight_plan_id,
-            released: true,
-            result: None,
-        }))
+        Ok(())
+    }
+
+    /// Get the status of a flight release request
+    async fn get_flight_release_status(
+        &self,
+        flight_plan_id: &String,
+    ) -> Result<AuthorityResponse, Status> {
+        region_info!("(get_flight_release_status)[nl] entry.");
+
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
+        Ok(AuthorityResponse {
+            flight_plan_id: flight_plan_id.clone(),
+            status: RequestStatus::Approved,
+            timestamp: Utc::now(),
+        })
     }
 
     async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>) {

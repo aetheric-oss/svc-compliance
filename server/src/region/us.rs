@@ -1,15 +1,13 @@
 //! Region implementation for the United States (US)
 
-use crate::grpc::server::{
-    FlightPlanRequest, FlightPlanResponse, FlightReleaseRequest, FlightReleaseResponse,
-};
-
+use super::{AuthorityResponse, RequestStatus};
 use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
 use svc_gis_client_grpc::prelude::gis::Coordinates;
-use tonic::{Request, Response, Status};
+use svc_storage_client_grpc::prelude::flight_plan;
+use tonic::Status;
 
 impl Default for super::RegionImpl {
     fn default() -> Self {
@@ -26,32 +24,54 @@ impl RegionInterface for super::RegionImpl {
         &self.region
     }
 
-    fn submit_flight_plan(
-        &self,
-        request: FlightPlanRequest,
-    ) -> Result<Response<FlightPlanResponse>, Status> {
+    async fn submit_flight_plan(&self, request: &flight_plan::Object) -> Result<(), Status> {
         region_info!("(submit_flight_plan)[us] entry.");
-        // TODO(R4) implement
-        let flight_plan_id = request.flight_plan_id;
-        Ok(Response::new(FlightPlanResponse {
-            flight_plan_id,
-            submitted: true,
-            result: None,
-        }))
+
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
+
+        Ok(())
     }
 
-    fn request_flight_release(
+    async fn get_flight_plan_status(
         &self,
-        request: Request<FlightReleaseRequest>,
-    ) -> Result<Response<FlightReleaseResponse>, Status> {
+        flight_plan_id: &String,
+    ) -> Result<AuthorityResponse, Status> {
+        region_info!("(get_flight_plan_status)[us] entry.");
+
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
+        Ok(AuthorityResponse {
+            flight_plan_id: flight_plan_id.clone(),
+            status: RequestStatus::Approved,
+            timestamp: Utc::now(),
+        })
+    }
+
+    /// Request flight release for a flight plan
+    async fn request_flight_release(&self, request: &flight_plan::Object) -> Result<(), Status> {
         region_info!("(request_flight_release)[us] entry.");
-        // TODO(R4) implement
-        let flight_plan_id = request.into_inner().flight_plan_id;
-        Ok(Response::new(FlightReleaseResponse {
-            flight_plan_id,
-            released: true,
-            result: None,
-        }))
+
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
+
+        Ok(())
+    }
+
+    /// Get the status of a flight release request
+    async fn get_flight_release_status(
+        &self,
+        flight_plan_id: &String,
+    ) -> Result<AuthorityResponse, Status> {
+        region_info!("(get_flight_release_status)[us] entry.");
+
+        // TODO(R5+): Contact the authority here
+        // Hardcoded for now
+        Ok(AuthorityResponse {
+            flight_plan_id: flight_plan_id.clone(),
+            status: RequestStatus::Approved,
+            timestamp: Utc::now(),
+        })
     }
 
     async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>) {

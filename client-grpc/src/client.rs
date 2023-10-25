@@ -81,27 +81,6 @@ impl service::Client<RpcServiceClient<Channel>> for ComplianceClient {
         grpc_debug!("(is_ready) request: {:?}", request);
         self.get_client().await?.is_ready(request).await
     }
-
-    async fn submit_flight_plan(
-        &self,
-        request: FlightPlanRequest,
-    ) -> Result<tonic::Response<FlightPlanResponse>, tonic::Status> {
-        grpc_warn!("(submit_flight_plan) {} client.", self.get_name());
-        grpc_debug!("(submit_flight_plan) request: {:?}", request);
-        self.get_client().await?.submit_flight_plan(request).await
-    }
-
-    async fn request_flight_release(
-        &self,
-        request: FlightReleaseRequest,
-    ) -> Result<tonic::Response<FlightReleaseResponse>, tonic::Status> {
-        grpc_warn!("(request_flight_release) {} client.", self.get_name());
-        grpc_debug!("(request_flight_release) request: {:?}", request);
-        self.get_client()
-            .await?
-            .request_flight_release(request)
-            .await
-    }
 }
 
 #[cfg(any(feature = "stub_client"))]
@@ -117,31 +96,6 @@ impl service::Client<RpcServiceClient<Channel>> for ComplianceClient {
         grpc_warn!("(is_ready MOCK) {} client.", self.get_name());
         grpc_debug!("(is_ready MOCK) request: {:?}", request);
         Ok(tonic::Response::new(ReadyResponse { ready: true }))
-    }
-    async fn submit_flight_plan(
-        &self,
-        request: FlightPlanRequest,
-    ) -> Result<tonic::Response<FlightPlanResponse>, tonic::Status> {
-        grpc_warn!("(submit_flight_plan MOCK) {} client.", self.get_name());
-        grpc_debug!("(submit_flight_plan MOCK) request: {:?}", request);
-        Ok(tonic::Response::new(FlightPlanResponse {
-            flight_plan_id: request.flight_plan_id,
-            submitted: true,
-            result: None,
-        }))
-    }
-
-    async fn request_flight_release(
-        &self,
-        request: FlightReleaseRequest,
-    ) -> Result<tonic::Response<FlightReleaseResponse>, tonic::Status> {
-        grpc_warn!("(request_flight_release MOCK) {} client.", self.get_name());
-        grpc_debug!("(request_flight_release MOCK) request: {:?}", request);
-        Ok(tonic::Response::new(FlightReleaseResponse {
-            flight_plan_id: request.flight_plan_id,
-            released: true,
-            result: None,
-        }))
     }
 }
 
@@ -179,47 +133,5 @@ mod tests {
         println!("{:?}", result);
         assert!(result.is_ok());
         assert_eq!(result.unwrap().into_inner().ready, true);
-    }
-
-    #[tokio::test]
-    async fn test_client_submit_flight_plan() {
-        let name = "compliance";
-        let (server_host, server_port) =
-            lib_common::grpc::get_endpoint_from_env("GRPC_HOST", "GRPC_PORT");
-
-        let client = ComplianceClient::new_client(&server_host, server_port, name);
-
-        let result = client
-            .submit_flight_plan(FlightPlanRequest {
-                flight_plan_id: "".to_string(),
-                data: "".to_string(),
-            })
-            .await;
-
-        assert!(result.is_ok());
-        let result: FlightPlanResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
-        assert_eq!(result.submitted, true);
-    }
-
-    #[tokio::test]
-    async fn test_grpc_request_flight_release() {
-        let name = "compliance";
-        let (server_host, server_port) =
-            lib_common::grpc::get_endpoint_from_env("GRPC_HOST", "GRPC_PORT");
-
-        let client = ComplianceClient::new_client(&server_host, server_port, name);
-
-        let result = client
-            .request_flight_release(FlightReleaseRequest {
-                flight_plan_id: "".to_string(),
-                data: "".to_string(),
-            })
-            .await;
-
-        assert!(result.is_ok());
-        let result: FlightReleaseResponse = result.unwrap().into_inner();
-        println!("{:?}", result);
-        assert_eq!(result.released, true);
     }
 }
