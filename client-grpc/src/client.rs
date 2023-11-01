@@ -104,7 +104,7 @@ impl service::Client<RpcServiceClient<Channel>> for ComplianceClient {
     }
 }
 
-#[cfg(any(feature = "stub_client"))]
+#[cfg(feature = "stub_client")]
 #[async_trait]
 impl service::Client<RpcServiceClient<Channel>> for ComplianceClient {
     type ReadyRequest = ReadyRequest;
