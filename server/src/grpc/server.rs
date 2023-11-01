@@ -177,7 +177,7 @@ pub async fn waypoints_loop(config: Config, region: Box<dyn RegionInterface + Se
     let host = config.gis_host_grpc;
     let port = config.gis_port_grpc;
 
-    grpc_info!(
+    grpc_debug!(
         "(waypoints_loop) Starting loop with interval: {} seconds.",
         config.interval_seconds_refresh_waypoints
     );

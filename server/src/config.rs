@@ -46,7 +46,7 @@ impl Config {
         Config {
             docker_port_grpc: 50051,
             gis_host_grpc: String::from("svc-gis"),
-            gis_port_grpc: 50008,
+            gis_port_grpc: 50051,
             interval_seconds_refresh_zones: 30,
             interval_seconds_refresh_waypoints: 30,
             log_config: String::from("log4rs.yaml"),
@@ -62,10 +62,19 @@ impl Config {
     pub fn try_from_env() -> Result<Self, ConfigError> {
         // read .env file if present
         dotenv().ok();
+        let default_config = Config::default();
 
         config::Config::builder()
-            .set_default("docker_port_grpc", 50051)?
-            .set_default("log_config", String::from("log4rs.yaml"))?
+            .set_default("docker_port_grpc", default_config.docker_port_grpc)?
+            .set_default("log_config", default_config.log_config)?
+            .set_default(
+                "interval_seconds_refresh_zones",
+                default_config.interval_seconds_refresh_zones,
+            )?
+            .set_default(
+                "interval_seconds_refresh_waypoints",
+                default_config.interval_seconds_refresh_waypoints,
+            )?
             .add_source(Environment::default().separator("__"))
             .build()?
             .try_deserialize()
@@ -85,7 +94,7 @@ mod tests {
 
         assert_eq!(config.docker_port_grpc, 50051);
         assert_eq!(config.gis_host_grpc, String::from("svc-gis"));
-        assert_eq!(config.gis_port_grpc, 50008);
+        assert_eq!(config.gis_port_grpc, 50051);
         assert_eq!(config.interval_seconds_refresh_zones, 30);
         assert_eq!(config.interval_seconds_refresh_waypoints, 30);
         assert_eq!(config.log_config, String::from("log4rs.yaml"));
