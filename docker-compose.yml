@@ -1,0 +1,35 @@
+version: '3.8'
+
+configs:
+  log4rs:
+    file: log4rs.yaml
+  dot-env:
+    file: .env
+
+services:
+  web-server:
+    depends_on:
+      redis:
+        condition: service_healthy
+    extends:
+      file: docker-compose-base.yml
+      service: web-server
+    environment:
+      - GIS_HOST_GRPC=svc-gis
+      - GIS_PORT_GRPC
+      - REQUEST_LIMIT_PER_SECOND
+
+  example:
+    extends:
+      file: docker-compose-base.yml
+      service: example
+
+  ut-coverage:
+    extends:
+      file: docker-compose-base.yml
+      service: ut-coverage
+
+  it-coverage:
+    extends:
+      file: docker-compose-base.yml
+      service: it-coverage

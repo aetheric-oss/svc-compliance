@@ -75,11 +75,9 @@ impl RpcService for ServerImpl {
         &self,
         request: Request<ReadyRequest>,
     ) -> Result<Response<ReadyResponse>, Status> {
-        grpc_info!(
-            "(is_ready)[{}] compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(is_ready) [{:?}].", request);
+        let region = self.region.get_region();
+        grpc_info!("(is_ready)[{}] compliance server.", region);
+        grpc_debug!("(is_ready)[{}] [{:?}].", region, request);
         let response = ReadyResponse { ready: true };
         Ok(Response::new(response))
     }
@@ -88,11 +86,9 @@ impl RpcService for ServerImpl {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        grpc_info!(
-            "(submit_flight_plan)[{}] compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(submit_flight_plan) [{:?}].", request);
+        let region = self.region.get_region();
+        grpc_info!("(submit_flight_plan)[{}] compliance server.", region);
+        grpc_debug!("(submit_flight_plan)[{}] [{:?}].", region, request);
         let request = request.into_inner();
         let response = self.region.submit_flight_plan(request.clone())?;
 
@@ -128,11 +124,9 @@ impl RpcService for ServerImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        grpc_info!(
-            "(request_flight_release)[{}] compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(request_flight_release) [{:?}].", request);
+        let region = self.region.get_region();
+        grpc_info!("(request_flight_release)[{}] compliance server.", region);
+        grpc_debug!("(request_flight_release)[{}] [{:?}].", region, request);
         self.region.request_flight_release(request)
     }
 }
@@ -145,7 +139,7 @@ async fn update_waypoints(
     let nodes: Vec<gis::Waypoint> = waypoints
         .iter()
         .map(|(label, coordinates)| gis::Waypoint {
-            label: label.clone(),
+            identifier: label.clone(),
             location: Some(*coordinates),
         })
         .collect();
@@ -199,14 +193,17 @@ async fn update_restrictions(
     port: u16,
     restrictions: &HashMap<String, RestrictionDetails>,
 ) -> UpdateRestrictionsStatus {
-    let mut zones: Vec<gis::NoFlyZone> = vec![];
+    let mut zones: Vec<gis::Zone> = vec![];
 
     for (label, details) in restrictions.iter() {
         let time_start = details.timestamp_start.map(|t| t.into());
         let time_end = details.timestamp_end.map(|t| t.into());
 
-        zones.push(gis::NoFlyZone {
-            label: label.clone(),
+        zones.push(gis::Zone {
+            identifier: label.clone(),
+            zone_type: details.zone_type as i32,
+            altitude_meters_max: details.altitude_meters_max,
+            altitude_meters_min: details.altitude_meters_min,
             vertices: details
                 .vertices
                 .iter()
@@ -226,10 +223,7 @@ async fn update_restrictions(
     }
 
     let client = GisClient::new_client(&host, port, "gis");
-    match client
-        .update_no_fly_zones(gis::UpdateNoFlyZonesRequest { zones })
-        .await
-    {
+    match client.update_zones(gis::UpdateZonesRequest { zones }).await {
         Ok(response) => {
             grpc_debug!("(update_restrictions) Got response: {:?}", response);
             UpdateRestrictionsStatus::Success
@@ -341,11 +335,9 @@ impl RpcService for ServerImpl {
         &self,
         request: Request<ReadyRequest>,
     ) -> Result<Response<ReadyResponse>, Status> {
-        grpc_warn!(
-            "(is_ready MOCK)[{}] compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(is_ready MOCK) [{:?}].", request);
+        let region = self.region.get_region();
+        grpc_warn!("(is_ready MOCK)[{}] compliance server.", region);
+        grpc_debug!("(is_ready MOCK)[{}] [{:?}].", region, request);
         let response = ReadyResponse { ready: true };
         Ok(Response::new(response))
     }
@@ -354,11 +346,9 @@ impl RpcService for ServerImpl {
         &self,
         request: Request<FlightPlanRequest>,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        grpc_warn!(
-            "(submit_flight_plan MOCK)[{}] compliance server.",
-            self.region.get_region()
-        );
-        grpc_debug!("(submit_flight_plan MOCK) [{:?}].", request);
+        let region = self.region.get_region();
+        grpc_warn!("(submit_flight_plan MOCK)[{}] compliance server.", region);
+        grpc_debug!("(submit_flight_plan MOCK)[{}] [{:?}].", region, request);
         let request = request.into_inner();
         Ok(tonic::Response::new(FlightPlanResponse {
             flight_plan_id: request.flight_plan_id,
@@ -371,11 +361,12 @@ impl RpcService for ServerImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
+        let region = self.region.get_region();
         grpc_warn!(
             "(request_flight_release MOCK)[{}] compliance server.",
-            self.region.get_region()
+            region
         );
-        grpc_debug!("(request_flight_release MOCK) [{:?}].", request);
+        grpc_debug!("(request_flight_release MOCK)[{}] [{:?}].", region, request);
         let request = request.into_inner();
         Ok(tonic::Response::new(FlightReleaseResponse {
             flight_plan_id: request.flight_plan_id,
@@ -489,6 +480,9 @@ mod tests {
                 vertices: vec![],
                 timestamp_start: Some(chrono::Utc::now()),
                 timestamp_end: None,
+                altitude_meters_max: 0.,
+                altitude_meters_min: 200.,
+                zone_type: gis::ZoneType::Restriction,
             },
         );
 
