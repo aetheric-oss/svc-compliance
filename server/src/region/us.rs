@@ -8,7 +8,7 @@ use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
-use svc_gis_client_grpc::prelude::gis::Coordinates;
+use svc_gis_client_grpc::prelude::gis::{Coordinates, ZoneType};
 use tonic::{Request, Response, Status};
 
 impl Default for super::RegionImpl {
@@ -69,6 +69,11 @@ impl RegionInterface for super::RegionImpl {
             (30.9310, -104.0424),
         ];
 
+        let Some(delta) = Duration::try_hours(1) else {
+            region_error!("Failed to create duration");
+            return;
+        };
+
         from_remote.insert(
             "ARROW-USA-TFR-ZONE".to_string(),
             RestrictionDetails {
@@ -79,10 +84,11 @@ impl RegionInterface for super::RegionImpl {
                         longitude,
                     })
                     .collect(),
-                // altitude_meters_min: 0,
-                // altitude_meters_max: 2000,
-                timestamp_end: Some(Utc::now() + Duration::hours(1)),
+                timestamp_end: Some(Utc::now() + delta),
                 timestamp_start: Some(Utc::now()),
+                altitude_meters_min: 0.0,
+                altitude_meters_max: 2000.0,
+                zone_type: ZoneType::Restriction,
             },
         );
 
@@ -112,6 +118,9 @@ impl RegionInterface for super::RegionImpl {
                 // altitude_meters_max: 6000,
                 timestamp_end: None,
                 timestamp_start: None,
+                altitude_meters_min: 0.0,
+                altitude_meters_max: 200.0,
+                zone_type: ZoneType::Restriction,
             },
         );
 
@@ -131,7 +140,7 @@ impl RegionInterface for super::RegionImpl {
         //
 
         // West TX
-        let from_remote: Vec<(f32, f32)> = vec![
+        let from_remote: Vec<(f64, f64)> = vec![
             // Ideal waypoint around hardcoded flight restriction
             (30.9311, -104.0428),
             // waypoint within the hardcoded flight restriction

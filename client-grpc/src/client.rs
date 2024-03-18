@@ -148,7 +148,7 @@ impl service::Client<RpcServiceClient<Channel>> for ComplianceClient {
 #[cfg(test)]
 mod tests {
     use crate::service::Client as ServiceClient;
-    use lib_common::grpc::ClientConnect;
+    // use lib_common::grpc::ClientConnect;
 
     use super::*;
 

@@ -4,21 +4,20 @@ fn get_log_string(function: &str, name: &str) -> String {
     #[cfg(feature = "stub_client")]
     return format!("({} MOCK) {} client.", function, name);
 
-    #[cfg(not(feature = "stub_client"))]
     cfg_if::cfg_if! {
         if #[cfg(feature = "nl")] {
-            let lang = "nl";
+            let region = "nl";
         } else {
-            let lang = "us";
+            let region = "us";
         }
     }
 
     #[cfg(not(feature = "stub_client"))]
     cfg_if::cfg_if! {
         if #[cfg(feature = "stub_backends")] {
-            return format!("({} MOCK)[{}] {} server.", function, lang, name);
+            return format!("({} MOCK)[{}] {} server.", function, region, name);
         } else {
-            return format!("({})[{}] {} client.", function, lang, name);
+            return format!("({}) {} client.", function, name);
         }
     }
 }

@@ -39,6 +39,15 @@ pub struct RestrictionDetails {
 
     /// The end time of the restriction
     pub timestamp_end: Option<DateTime<Utc>>,
+
+    /// The restriction type
+    pub zone_type: gis::ZoneType,
+
+    /// The maximum altitude
+    pub altitude_meters_max: f32,
+
+    /// The minimum altitude
+    pub altitude_meters_min: f32,
 }
 
 /// Interface to regional authorities

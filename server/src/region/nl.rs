@@ -8,7 +8,7 @@ use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
 use chrono::{Duration, Utc};
 use std::collections::HashMap;
-use svc_gis_client_grpc::prelude::gis::Coordinates;
+use svc_gis_client_grpc::prelude::gis::{Coordinates, ZoneType};
 use tonic::{Request, Response, Status};
 
 //
@@ -74,17 +74,23 @@ impl RegionInterface for super::RegionImpl {
         // TODO(R4): This is currently hardcoded. This should be replaced with a call to
         //  an API.
         //
+        let Some(delta) = Duration::try_hours(1) else {
+            region_error!("Failed to create duration");
+            return;
+        };
+
         let mut from_remote: HashMap<String, RestrictionDetails> = HashMap::new();
 
         let vertices = vec![
-            (4.9158, 52.3751),
-            (4.9157, 52.3750),
-            (4.9164, 52.3749),
-            (4.9164, 52.3751),
+            (4.7091866, 52.3827247),
+            (4.6507947, 52.3294647),
+            (4.7560834, 52.2572307),
+            (4.8234058, 52.3214912),
+            (4.7091866, 52.3827247),
         ];
 
         from_remote.insert(
-            "ARROW-NL-TFR-ZONE".to_string(),
+            "ARROW-NL-NOFLY-SCHIPOL".to_string(),
             RestrictionDetails {
                 vertices: vertices
                     .into_iter()
@@ -93,28 +99,56 @@ impl RegionInterface for super::RegionImpl {
                         longitude: x,
                     })
                     .collect(),
-                timestamp_end: Some(Utc::now() + Duration::hours(1)),
-                timestamp_start: Some(Utc::now()),
+                timestamp_end: None,
+                timestamp_start: None,
+                altitude_meters_min: 0.0,
+                altitude_meters_max: 2000.0,
+                zone_type: ZoneType::Restriction,
             },
         );
 
         let vertices = vec![
-            (4.9159, 52.3743),
-            (4.9169, 52.3749),
-            (4.9165, 52.3751),
-            (4.9166, 52.3755),
-            (4.9191, 52.3751),
-            (4.9166, 52.3730),
-            (4.9143, 52.3732),
-            (4.9132, 52.3749),
-            (4.9145, 52.3758),
-            (4.9152, 52.3757),
-            (4.9149, 52.3751),
-            (4.9155, 52.3748),
+            (4.8822724, 52.3688393),
+            (4.8832170, 52.3781666),
+            (4.9007345, 52.3777998),
+            (4.9001335, 52.3680532),
+            (4.8822724, 52.3688393),
         ];
 
         from_remote.insert(
-            "ARROW-NL-NOFLY-ZONE".to_string(),
+            "ARROW-NL-TFR-PALEIS".to_string(),
+            RestrictionDetails {
+                vertices: vertices
+                    .into_iter()
+                    .map(|(longitude, latitude)| Coordinates {
+                        latitude,
+                        longitude,
+                    })
+                    .collect(),
+                timestamp_end: Some(Utc::now() + delta),
+                timestamp_start: Some(Utc::now()),
+                altitude_meters_min: 0.0,
+                altitude_meters_max: 2000.0,
+                zone_type: ZoneType::Restriction,
+            },
+        );
+
+        // HOORN
+        let vertices = vec![
+            (5.0232724, 52.6317085),
+            (5.1069102, 52.6347298),
+            (5.1036471, 52.6459798),
+            (5.1227104, 52.6501458),
+            (5.0948883, 52.6829387),
+            (5.0306572, 52.6710736),
+            (5.0358094, 52.6534782),
+            (5.0102200, 52.6393135),
+            (5.0229289, 52.6317085),
+            (5.0232724, 52.6317085),
+        ];
+
+        from_remote.insert(
+            "ARROW-NL-NOFLY-HOORN".to_string(),
             RestrictionDetails {
                 vertices: vertices
                     .into_iter()
@@ -125,6 +159,9 @@ impl RegionInterface for super::RegionImpl {
                     .collect(),
                 timestamp_end: None,
                 timestamp_start: None,
+                altitude_meters_min: 0.0,
+                altitude_meters_max: 2000.0,
+                zone_type: ZoneType::Restriction,
             },
         );
 
@@ -143,7 +180,7 @@ impl RegionInterface for super::RegionImpl {
         //
 
         // Amsterdam Drone Lab Waypoints
-        let from_remote: Vec<(f32, f32)> = vec![
+        let from_remote: Vec<(f64, f64)> = vec![
             // Valid waypoints
             (4.9160, 52.3745),
             (4.9156, 52.3749),
@@ -151,6 +188,78 @@ impl RegionInterface for super::RegionImpl {
             (4.9156, 52.3753),
             // Waypoint within the TFR
             (4.9161, 52.3750),
+            // Others
+            (5.2021015, 52.9635294),
+            (5.2570586, 52.8691297),
+            (5.3724685, 52.7878146),
+            (5.4164342, 52.6780473),
+            (5.3559814, 52.6047156),
+            (5.2735457, 52.5513062),
+            (5.2021015, 52.4944873),
+            (5.1361530, 52.4174978),
+            (5.0784480, 52.3638604),
+            (5.0234941, 52.2858024),
+            (4.9699542, 52.2542885),
+            (4.9095214, 52.2742499),
+            (4.9075041, 52.3103678),
+            (5.2844417, 52.6672220),
+            (5.2133705, 52.6122211),
+            (5.1309348, 52.5930378),
+            (5.0732299, 52.5796880),
+            (5.0057699, 52.5550636),
+            (4.9314804, 52.5341847),
+            (4.8697511, 52.5015937),
+            (4.8566987, 52.4677236),
+            (4.8148570, 52.5329316),
+            (4.7921165, 52.5742635),
+            (4.8375440, 52.6038816),
+            (4.8918141, 52.6330629),
+            (4.9550148, 52.6701368),
+            (5.0051632, 52.6959449),
+            (5.0553115, 52.7092593),
+            (5.1189528, 52.7421118),
+            (5.1892695, 52.8060822),
+            (5.5227080, 52.7703701),
+            (5.5213340, 52.7080113),
+            (5.5309515, 52.6380634),
+            (5.5007251, 52.5888665),
+            (5.3784456, 52.5270836),
+            (5.3399756, 52.4727431),
+            (5.3866891, 52.4258727),
+            (5.4457680, 52.3630218),
+            (5.6862054, 52.4091213),
+            (5.7865021, 52.4568462),
+            (5.8538245, 52.5496361),
+            (5.0791343, 53.0230443),
+            (4.9870812, 53.0519455),
+            (4.9280023, 53.1030944),
+            (4.9664723, 53.1739423),
+            (5.0502818, 53.2380987),
+            (5.2357621, 53.3103651),
+            (5.3621634, 53.3513711),
+            (5.5023041, 53.3857856),
+            (5.6026008, 53.4005262),
+            (5.7606025, 53.4136247),
+            (4.8892276, 52.3661141),
+            (4.8931777, 52.3793717),
+            (4.8784938, 52.3742892),
+            (4.9035680, 52.3718788),
+            (4.7266651, 52.2700483),
+            (4.8111616, 52.3481340),
+            (4.6383902, 52.3676339),
+            (4.8558143, 52.2631146),
+            (4.8805450, 52.3166644),
+            (4.7946745, 52.2286406),
+            (4.6164074, 52.3109975),
+            (4.7022778, 52.4068174),
+            (5.0968408, 52.6132634),
+            (5.1521414, 52.6491043),
+            (5.1342804, 52.6751331),
+            (5.0985582, 52.6969853),
+            (5.0456620, 52.6903267),
+            (5.0034138, 52.6645152),
+            (4.9955137, 52.6330629),
+            (5.0463490, 52.6134719),
         ];
 
         let from_remote: HashMap<String, Coordinates> = from_remote
