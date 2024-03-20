@@ -40,7 +40,7 @@ adsb
 oneshot
 thiserror
 Refactorings
-schipol
+schiphol
 paleis
 hoorn
 seccomp

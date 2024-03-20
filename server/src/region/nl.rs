@@ -90,7 +90,7 @@ impl RegionInterface for super::RegionImpl {
         ];
 
         from_remote.insert(
-            "ARROW-NL-NOFLY-SCHIPOL".to_string(),
+            "ARROW-NL-NOFLY-SCHIPHOL".to_string(),
             RestrictionDetails {
                 vertices: vertices
                     .into_iter()
