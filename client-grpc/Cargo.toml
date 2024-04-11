@@ -26,8 +26,8 @@ stub_backends = [
 # Will implement stub functions for the client, only use for tests!
 stub_client = ["svc-compliance"]
 # region options, can only activate one, used for tests only
-nl = ["svc-compliance?/nl", "test_util"]
-us = ["svc-compliance?/us", "test_util"]
+test_nl = ["svc-compliance?/nl", "test_util"]
+test_us = ["svc-compliance?/us", "test_util"]
 
 [dependencies]
 cfg-if         = "1.0"
