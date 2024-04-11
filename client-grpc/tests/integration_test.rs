@@ -5,7 +5,7 @@ fn get_log_string(function: &str, name: &str) -> String {
     return format!("({} MOCK) {} client.", function, name);
 
     cfg_if::cfg_if! {
-        if #[cfg(feature = "nl")] {
+        if #[cfg(feature = "test_nl")] {
             let region = "nl";
         } else {
             let region = "us";
