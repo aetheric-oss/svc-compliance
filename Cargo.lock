@@ -383,9 +383,9 @@ checksum = "fbb36e985947064623dbd357f727af08ffd077f93d696782f3c56365fa2e2799"
 
 [[package]]
 name = "async-trait"
-version = "0.1.79"
+version = "0.1.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a507401cad91ec6a857ed5513a2073c82a9b9048762b885bb98655b306964681"
+checksum = "c6fa2087f2753a7da8cc1c0dbfcf89579dd57458e36769de5ac750b4671737ca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3154,7 +3154,7 @@ checksum = "81cdd64d312baedb58e21336b31bc043b77e01cc99033ce76ef539f78e965ebc"
 
 [[package]]
 name = "svc-compliance"
-version = "0.2.1-develop.2"
+version = "0.2.1-develop.3"
 dependencies = [
  "anyhow",
  "cargo-husky",
@@ -3191,7 +3191,7 @@ dependencies = [
 
 [[package]]
 name = "svc-compliance-client-grpc"
-version = "0.2.1-develop.2"
+version = "0.2.1-develop.3"
 dependencies = [
  "cfg-if",
  "futures",
@@ -3213,8 +3213,8 @@ dependencies = [
 
 [[package]]
 name = "svc-gis"
-version = "0.1.1-develop.9"
-source = "git+https://github.com/Arrow-air/svc-gis.git?tag=latest-develop#b2bf46004ec345c4e4d38cda8d4db44e52fb7f72"
+version = "0.1.1-develop.10"
+source = "git+https://github.com/Arrow-air/svc-gis.git?tag=latest-develop#a37b1e183ec43e6067c0056f01efee80569e4c25"
 dependencies = [
  "anyhow",
  "axum",
@@ -3261,8 +3261,8 @@ dependencies = [
 
 [[package]]
 name = "svc-gis-client-grpc"
-version = "0.1.1-develop.9"
-source = "git+https://github.com/Arrow-air/svc-gis.git?tag=latest-develop#b2bf46004ec345c4e4d38cda8d4db44e52fb7f72"
+version = "0.1.1-develop.10"
+source = "git+https://github.com/Arrow-air/svc-gis.git?tag=latest-develop#a37b1e183ec43e6067c0056f01efee80569e4c25"
 dependencies = [
  "cfg-if",
  "chrono",
@@ -4130,9 +4130,9 @@ checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
 
 [[package]]
 name = "winnow"
-version = "0.6.5"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dffa400e67ed5a4dd237983829e66475f0a4a26938c4b04c21baede6262215b8"
+checksum = "f0c976aaaa0e1f90dbb21e9587cdaf1d9679a1cde8875c0d6bd83ab96a208352"
 dependencies = [
  "memchr",
 ]
