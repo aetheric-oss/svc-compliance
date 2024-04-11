@@ -130,7 +130,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             PACKAGE_NAME=${{ github.event.repository.name }}
-            ENABLE_FEATURES: ${{ matrix.region }}
+            ENABLE_FEATURES=${{ matrix.region }}
 
   rust-docs:
     name: Generate and sync Rust docs
