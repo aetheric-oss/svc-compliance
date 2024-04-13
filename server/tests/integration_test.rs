@@ -2,10 +2,10 @@
 //!
 fn get_log_string(function: &str, name: &str) -> String {
     cfg_if::cfg_if! {
-        if #[cfg(feature = "nl")] {
-            let lang = "nl";
-        } else {
+        if #[cfg(feature = "us")] {
             let lang = "us";
+        } else {
+            let lang = "nl";
         }
     }
 
