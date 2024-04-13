@@ -59,11 +59,11 @@ tonic-health    = "0.10"
 
 [dependencies.lib-common]
 features = ["grpc"]
-git      = "https://github.com/Arrow-air/lib-common.git"
+git      = "https://github.com/aetheric-oss/lib-common.git"
 tag      = "latest-develop"
 
 [dependencies.svc-gis-client-grpc]
-git = "https://github.com/Arrow-air/svc-gis.git"
+git = "https://github.com/aetheric-oss/svc-gis.git"
 tag = "latest-develop"
 
 [dependencies.log4rs]
