@@ -396,10 +396,10 @@ mod tests {
 
         let imp = get_server_impl();
         cfg_if::cfg_if! {
-            if #[cfg(feature = "nl")] {
-                assert_eq!(imp.region.get_region(), "nl");
-            } else {
+            if #[cfg(feature = "us")] {
                 assert_eq!(imp.region.get_region(), "us");
+            } else {
+                assert_eq!(imp.region.get_region(), "nl");
             }
         }
 
