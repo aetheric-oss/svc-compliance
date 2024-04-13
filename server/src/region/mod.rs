@@ -4,10 +4,10 @@
 pub mod macros;
 
 cfg_if::cfg_if! {
-    if #[cfg(feature = "nl")] {
-        pub mod nl;
-    } else {
+    if #[cfg(feature = "us")] {
         pub mod us;
+    } else {
+        pub mod nl;
     }
 }
 
@@ -86,10 +86,10 @@ mod tests {
 
         let region_impl = RegionImpl::default();
         cfg_if::cfg_if! {
-            if #[cfg(feature = "nl")] {
-                assert_eq!(region_impl.region, "nl");
-            } else {
+            if #[cfg(feature = "us")] {
                 assert_eq!(region_impl.region, "us");
+            } else {
+                assert_eq!(region_impl.region, "nl");
             }
         }
 
