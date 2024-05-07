@@ -1,5 +1,5 @@
 [package]
-description = "Arrow compliance service gRPC server"
+description = "Aetheric compliance service gRPC server"
 keywords    = ["vtol", "server", "grpc", "compliance"] # max 5
 name        = "svc-compliance"
 version     = "0.2.1-develop.7"
