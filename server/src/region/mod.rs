@@ -14,7 +14,7 @@ cfg_if::cfg_if! {
 pub mod utils;
 
 use crate::grpc::server;
-use chrono::{DateTime, Utc};
+use lib_common::time::{DateTime, Utc};
 use server::{FlightPlanRequest, FlightPlanResponse};
 use server::{FlightReleaseRequest, FlightReleaseResponse};
 use std::collections::HashMap;
@@ -81,7 +81,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_region_code() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_region_code) Start.");
 
         let region_impl = RegionImpl::default();

@@ -35,7 +35,7 @@ pub struct ServerImpl {
 
 /// Results of updating restrictions
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum UpdateRestrictionsStatus {
+pub enum UpdateRestrictionsError {
     /// Restrictions were updated
     Success,
 
@@ -48,7 +48,7 @@ pub enum UpdateRestrictionsStatus {
 
 /// Results of updating waypoints
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum UpdateWaypointsStatus {
+pub enum UpdateWaypointsError {
     /// Waypoints were updated
     Success,
 
@@ -135,7 +135,7 @@ async fn update_waypoints(
     host: String,
     port: u16,
     waypoints: &HashMap<String, gis::Coordinates>,
-) -> UpdateWaypointsStatus {
+) -> Result<(), UpdateWaypointsError> {
     let nodes: Vec<gis::Waypoint> = waypoints
         .iter()
         .map(|(label, coordinates)| gis::Waypoint {
@@ -146,27 +146,24 @@ async fn update_waypoints(
 
     if nodes.is_empty() {
         grpc_warn!("(update_waypoints) No waypoints to update.");
-        return UpdateWaypointsStatus::NoWaypoints;
+        return Err(UpdateWaypointsError::NoWaypoints);
     }
 
-    let client = GisClient::new_client(&host, port, "gis");
-    match client
+    let response = GisClient::new_client(&host, port, "gis")
         .update_waypoints(gis::UpdateWaypointsRequest { waypoints: nodes })
         .await
-    {
-        Ok(response) => {
-            grpc_debug!("(update_waypoints) Got response: {:?}", response);
-            UpdateWaypointsStatus::Success
-        }
-        Err(e) => {
+        .map_err(|e| {
             grpc_error!("(update_waypoints) {:?}", e);
-            UpdateWaypointsStatus::RequestFailure
-        }
-    }
+            UpdateWaypointsError::RequestFailure
+        })?;
+
+    grpc_info!("(update_waypoints) {:?}", response);
+    Ok(())
 }
 
 /// Periodically pulls down waypoints from the regional interface and
 ///  pushes them to the GIS microservice
+#[cfg(not(tarpaulin_include))]
 pub async fn waypoints_loop(config: Config, region: Box<dyn RegionInterface + Send + Sync>) {
     let host = config.gis_host_grpc;
     let port = config.gis_port_grpc;
@@ -181,7 +178,7 @@ pub async fn waypoints_loop(config: Config, region: Box<dyn RegionInterface + Se
     loop {
         // Pull down waypoints from regional interface
         region.acquire_waypoints(&mut cache).await;
-        update_waypoints(host.clone(), port, &cache).await;
+        let _ = update_waypoints(host.clone(), port, &cache).await;
         std::thread::sleep(std::time::Duration::from_secs(
             config.interval_seconds_refresh_waypoints as u64,
         ));
@@ -192,7 +189,7 @@ async fn update_restrictions(
     host: String,
     port: u16,
     restrictions: &HashMap<String, RestrictionDetails>,
-) -> UpdateRestrictionsStatus {
+) -> Result<(), UpdateRestrictionsError> {
     let mut zones: Vec<gis::Zone> = vec![];
 
     for (label, details) in restrictions.iter() {
@@ -219,24 +216,24 @@ async fn update_restrictions(
 
     if zones.is_empty() {
         grpc_warn!("(update_restrictions) No restrictions to update.");
-        return UpdateRestrictionsStatus::NoRestrictions;
+        return Err(UpdateRestrictionsError::NoRestrictions);
     }
 
-    let client = GisClient::new_client(&host, port, "gis");
-    match client.update_zones(gis::UpdateZonesRequest { zones }).await {
-        Ok(response) => {
-            grpc_debug!("(update_restrictions) Got response: {:?}", response);
-            UpdateRestrictionsStatus::Success
-        }
-        Err(e) => {
+    let response = GisClient::new_client(&host, port, "gis")
+        .update_zones(gis::UpdateZonesRequest { zones })
+        .await
+        .map_err(|e| {
             grpc_error!("(update_restrictions) {:?}", e);
-            UpdateRestrictionsStatus::RequestFailure
-        }
-    }
+            UpdateRestrictionsError::RequestFailure
+        })?;
+
+    grpc_info!("(update_restrictions) {:?}", response);
+    Ok(())
 }
 
 /// Periodically pulls down restrictions from the regional interface and
 ///  pushes them to the GIS microservice
+#[cfg(not(tarpaulin_include))]
 pub async fn restrictions_loop(config: Config, region: Box<dyn RegionInterface + Send + Sync>) {
     let host = config.gis_host_grpc;
     let port = config.gis_port_grpc;
@@ -249,7 +246,7 @@ pub async fn restrictions_loop(config: Config, region: Box<dyn RegionInterface +
 
     loop {
         region.acquire_restrictions(&mut cache).await;
-        update_restrictions(host.clone(), port, &cache).await;
+        let _ = update_restrictions(host.clone(), port, &cache).await;
         std::thread::sleep(std::time::Duration::from_secs(
             config.interval_seconds_refresh_zones as u64,
         ));
@@ -391,7 +388,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_region_code() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_region_code) Start.");
 
         let imp = get_server_impl();
@@ -408,7 +405,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_server_is_ready() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_grpc_server_is_ready) Start.");
 
         let imp = get_server_impl();
@@ -422,7 +419,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_submit_flight_plan() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_grpc_submit_flight_plan) Start.");
 
         let imp = get_server_impl();
@@ -443,7 +440,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_grpc_request_flight_release() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_grpc_request_flight_release) Start.");
 
         let imp = get_server_impl();
@@ -464,15 +461,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_restrictions() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_update_restrictions) Start.");
 
         let host = "localhost".to_string();
         let port = 50008;
 
         let mut cache: HashMap<String, RestrictionDetails> = HashMap::new();
-        let result = update_restrictions(host.clone(), port, &cache).await;
-        assert_eq!(result, UpdateRestrictionsStatus::NoRestrictions);
+        let error = update_restrictions(host.clone(), port, &cache)
+            .await
+            .unwrap_err();
+        assert_eq!(error, UpdateRestrictionsError::NoRestrictions);
 
         cache.insert(
             "test".to_string(),
@@ -486,23 +485,25 @@ mod tests {
             },
         );
 
-        let result = update_restrictions(host.clone(), port, &cache).await;
-        assert_eq!(result, UpdateRestrictionsStatus::Success);
-
+        let _ = update_restrictions(host.clone(), port, &cache)
+            .await
+            .unwrap();
         ut_info!("(test_update_restrictions) Success.");
     }
 
     #[tokio::test]
     async fn test_update_waypoints() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_update_waypoints) Start.");
 
         let host = "localhost".to_string();
         let port = 50008;
 
         let mut cache: HashMap<String, gis::Coordinates> = HashMap::new();
-        let result = update_waypoints(host.clone(), port, &cache).await;
-        assert_eq!(result, UpdateWaypointsStatus::NoWaypoints);
+        let error = update_waypoints(host.clone(), port, &cache)
+            .await
+            .unwrap_err();
+        assert_eq!(error, UpdateWaypointsError::NoWaypoints);
 
         cache.insert(
             "ARROW-WAY-1".to_string(),
@@ -512,9 +513,7 @@ mod tests {
             },
         );
 
-        let result = update_waypoints(host.clone(), port, &cache).await;
-        assert_eq!(result, UpdateWaypointsStatus::Success);
-
+        let _ = update_waypoints(host.clone(), port, &cache).await.unwrap();
         ut_info!("(test_update_waypoints) Success.");
     }
 }

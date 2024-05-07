@@ -6,7 +6,7 @@ use crate::grpc::server::{
 
 use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
-use chrono::{Duration, Utc};
+use lib_common::time::{Duration, Utc};
 use std::collections::HashMap;
 use svc_gis_client_grpc::prelude::gis::{Coordinates, ZoneType};
 use tonic::{Request, Response, Status};
@@ -179,7 +179,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_region_code() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_region_code)[us] Start.");
 
         let region_impl = RegionImpl::default();
@@ -190,7 +190,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_flight_plan() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_submit_flight_plan)[us] Start.");
 
         let region = RegionImpl::default();
@@ -209,7 +209,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_request_flight_release() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_request_flight_release)[us] Start.");
 
         let region = RegionImpl::default();
@@ -228,7 +228,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_acquire_restrictions() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_acquire_restrictions)[us] Start.");
 
         let region = RegionImpl::default();
@@ -242,7 +242,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_waypoints() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_refresh_waypoints)[us] Start.");
 
         let region = RegionImpl::default();
