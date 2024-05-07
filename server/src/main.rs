@@ -1,5 +1,6 @@
 //! Main function starting the server and initializing dependencies.
 
+use lib_common::logger::load_logger_config_from_file;
 use log::info;
 use svc_compliance::*;
 
