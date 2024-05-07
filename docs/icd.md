@@ -1,4 +1,4 @@
-![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+![Aetheric Banner](https://github.com/aetheric-oss/.github/blob/main/assets/doc-banner.png)
 
 # Interface Control Document (ICD) - `svc-compliance`
 
@@ -11,7 +11,7 @@ This document defines the gRPC and REST interfaces unique to the
 
 | Attribute     | Description                                                       |
 | ------------- |-------------------------------------------------------------------|
-| Maintainer(s) | [Services Team](https://github.com/orgs/Arrow-air/teams/services) |
+| Maintainer(s) | [Aetheric Realm Team](https://github.com/orgs/aetheric-oss/teams/dev-realm) |
 | Stuckee       | A.M. Smith [@ServiceDog](https://github.com/servicedog)           |
 | Status        | Draft                                                             |
 
@@ -19,15 +19,15 @@ This document defines the gRPC and REST interfaces unique to the
 
 Document | Description
 --- | ---
-[High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
-[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md) | Interfaces and frameworks common to all Arrow microservices.
+[High-Level Concept of Operations (CONOPS)](https://github.com/aetheric-oss/se-services/blob/develop/docs/conops.md) | Overview of Aetheric microservices.
+[High-Level Interface Control Document (ICD)](https://github.com/aetheric-oss/se-services/blob/develop/docs/icd.md) | Interfaces and frameworks common to all Aetheric microservices.
 [Requirements - `svc-compliance`](https://nocodb.arrowair.com/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b) | Requirements and user stories for this microservice.
 [Concept of Operations - `svc-compliance`](./conops.md) | Defines the motivation and duties of this microservice.
 [Software Design Document (SDD) - `svc-compliance`](./sdd.md) | Specifies the internal activity of this microservice.
 
 ## :hammer: Frameworks
 
-See the [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md).
+See the [High-Level Services ICD](https://github.com/aetheric-oss/se-services/blob/develop/docs/icd.md).
 
 ## REST
 
@@ -42,7 +42,7 @@ These interfaces are defined in a protocol buffer file,
 
 ### Integrated Authentication & Encryption
 
-See [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md).
+See [High-Level Services ICD](https://github.com/aetheric-oss/se-services/blob/develop/docs/icd.md).
 
 ### gRPC Server Methods ("Services")
 
