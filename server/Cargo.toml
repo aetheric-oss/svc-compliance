@@ -2,7 +2,7 @@
 description = "Aetheric compliance service gRPC server"
 keywords    = ["vtol", "server", "grpc", "compliance"]  # max 5
 name        = "svc-compliance"
-version     = "0.2.1-develop.7"
+version     = "0.2.1-develop.8"
 
 authors.workspace      = true
 categories.workspace   = true
