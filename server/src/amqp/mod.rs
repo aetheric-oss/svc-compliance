@@ -16,7 +16,7 @@ pub const QUEUE_NAME_CARGO: &str = "cargo";
 pub const ROUTING_KEY_CARGO: &str = "cargo";
 
 /// Custom Error type for MQ errors
-#[derive(thiserror::Error, Debug, Copy, Clone)]
+#[derive(thiserror::Error, Debug, Copy, Clone, PartialEq)]
 pub enum AMQPError {
     /// Could Not Publish
     #[error("error: Could not publish to queue.")]
@@ -62,17 +62,20 @@ cfg_if::cfg_if! {
                 payload: &[u8],
                 properties: BasicProperties,
             ) -> Result<(), AMQPError> {
-                if let Some(channel) = &self.channel {
-                    match channel
-                        .basic_publish(exchange, routing_key, options, payload, properties)
-                        .await
-                    {
-                        Ok(_) => Ok(()),
-                        Err(_) => Err(AMQPError::CouldNotPublish)
-                    }
-                } else {
-                    Ok(())
-                }
+                let Some(channel) = &self.channel else {
+                    amqp_warn!("(basic_publish) No channel set AMQPChannel.");
+                    return Ok(())
+                };
+
+                channel
+                    .basic_publish(exchange, routing_key, options, payload, properties)
+                    .await
+                    .map_err(|e| {
+                        amqp_error!("(basic_publish) Could not publish: {}", e);
+                        AMQPError::CouldNotPublish
+                    })?;
+
+                Ok(())
             }
         }
     } else {
@@ -80,12 +83,12 @@ cfg_if::cfg_if! {
         impl AMQPChannel {
             /// Wrapper function for lapin::Channel basic_publish
             pub async fn basic_publish(&self, exchange: &str, routing_key: &str, options: BasicPublishOptions, payload: &[u8], properties: BasicProperties) -> lapin::Result<PublisherConfirm> {
-                if let Some(channel) = &self.channel {
-                    channel.basic_publish(exchange, routing_key, options, payload, properties).await
-                } else {
+                let channel = self.channel.as_ref().ok_or_else(|| {
                     amqp_error!("(basic_publish) No channel set AMQPChannel.");
-                    Err(lapin::Error::InvalidChannelState(lapin::ChannelState::Error))
-                }
+                    lapin::Error::InvalidChannelState(lapin::ChannelState::Error)
+                })?;
+
+                channel.basic_publish(exchange, routing_key, options, payload, properties).await
             }
         }
     }
@@ -96,84 +99,75 @@ cfg_if::cfg_if! {
 pub async fn init_mq(config: Config) -> Result<lapin::Channel, AMQPError> {
     // Establish connection to RabbitMQ node
     let pool = pool::AMQPPool::new(config.clone())?;
-
     let amqp_connection = pool.get_connection().await?;
 
     // Create channel
     amqp_info!("(init_mq) Creating channel...");
-    let amqp_channel = match amqp_connection.create_channel().await {
-        Ok(channel) => channel,
-        Err(e) => {
-            amqp_error!("(init_mq) Could not create channel: {}", e);
-            return Err(AMQPError::CouldNotCreateChannel);
-        }
-    };
+    let amqp_channel = amqp_connection.create_channel().await.map_err(|e| {
+        amqp_error!("(init_mq) Could not create channel: {}", e);
+        AMQPError::CouldNotCreateChannel
+    })?;
 
     // Declare CARGO Queue
-    {
-        amqp_info!("(init_mq) Creating '{QUEUE_NAME_CARGO}' queue...");
-        let result = amqp_channel
-            .queue_declare(
-                QUEUE_NAME_CARGO,
-                lapin::options::QueueDeclareOptions::default(),
-                lapin::types::FieldTable::default(),
-            )
-            .await;
-
-        if let Err(e) = result {
+    amqp_info!("(init_mq) Creating '{QUEUE_NAME_CARGO}' queue...");
+    let _ = amqp_channel
+        .queue_declare(
+            QUEUE_NAME_CARGO,
+            lapin::options::QueueDeclareOptions::default(),
+            lapin::types::FieldTable::default(),
+        )
+        .await
+        .map_err(|e| {
             amqp_error!(
                 "(init_mq) Could not declare queue '{QUEUE_NAME_CARGO}': {}",
                 e
             );
-            return Err(AMQPError::CouldNotDeclareQueue);
-        }
-    }
+            AMQPError::CouldNotDeclareQueue
+        })?;
 
     //
     // Declare a topic exchange
     //
-    {
-        amqp_info!("(init_mq) Declaring exchange '{EXCHANGE_NAME_FLIGHTPLAN}'...");
-        let result = amqp_channel
-            .exchange_declare(
-                EXCHANGE_NAME_FLIGHTPLAN,
-                lapin::ExchangeKind::Topic,
-                lapin::options::ExchangeDeclareOptions::default(),
-                lapin::types::FieldTable::default(),
-            )
-            .await;
-
-        if let Err(e) = result {
+    amqp_info!("(init_mq) Declaring exchange '{EXCHANGE_NAME_FLIGHTPLAN}'...");
+    amqp_channel
+        .exchange_declare(
+            EXCHANGE_NAME_FLIGHTPLAN,
+            lapin::ExchangeKind::Topic,
+            lapin::options::ExchangeDeclareOptions::default(),
+            lapin::types::FieldTable::default(),
+        )
+        .await
+        .map_err(|e| {
             amqp_error!(
                 "(init_mq) Could not declare exchange '{EXCHANGE_NAME_FLIGHTPLAN}': {}",
                 e
             );
-            return Err(AMQPError::CouldNotDeclareExchange);
-        }
-    }
+            AMQPError::CouldNotDeclareExchange
+        })?;
 
     //
     // Bind the CARGO queue to the exchange
     //
-    {
-        amqp_info!("(init_mq) Binding queue '{QUEUE_NAME_CARGO}' to exchange '{EXCHANGE_NAME_FLIGHTPLAN}'...");
-        let result = amqp_channel
-            .queue_bind(
-                QUEUE_NAME_CARGO,
-                EXCHANGE_NAME_FLIGHTPLAN,
-                ROUTING_KEY_CARGO,
-                lapin::options::QueueBindOptions::default(),
-                lapin::types::FieldTable::default(),
-            )
-            .await;
-
-        if let Err(e) = result {
+    amqp_info!(
+        "(init_mq) Binding queue '{QUEUE_NAME_CARGO}' to exchange '{EXCHANGE_NAME_FLIGHTPLAN}'..."
+    );
+    amqp_channel
+        .queue_bind(
+            QUEUE_NAME_CARGO,
+            EXCHANGE_NAME_FLIGHTPLAN,
+            ROUTING_KEY_CARGO,
+            lapin::options::QueueBindOptions::default(),
+            lapin::types::FieldTable::default(),
+        )
+        .await
+        .map_err(|e| {
             amqp_error!(
                 "(init_mq) Could not bind queue '{QUEUE_NAME_CARGO}' to exchange: {}",
                 e
             );
-        }
-    }
+
+            AMQPError::CouldNotDeclareExchange
+        })?;
 
     Ok(amqp_channel)
 }

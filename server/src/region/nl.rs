@@ -333,7 +333,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_region_code() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_region_code)[nl] Start.");
 
         let region_impl = RegionImpl::default();
@@ -344,7 +344,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_submit_flight_plan() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_submit_flight_plan)[nl] Start.");
 
         let region = RegionImpl::default();
@@ -363,7 +363,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_request_flight_release() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_request_flight_release)[nl] Start.");
 
         let region = RegionImpl::default();
@@ -382,7 +382,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_acquire_restrictions() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_acquire_restrictions)[nl] Start.");
 
         let region = RegionImpl::default();
@@ -396,7 +396,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_waypoints() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_refresh_waypoints)[nl] Start.");
 
         let region = RegionImpl::default();
