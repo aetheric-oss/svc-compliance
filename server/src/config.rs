@@ -88,7 +88,7 @@ mod tests {
     #[tokio::test]
     async fn test_config_from_default() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_config_from_default) Start.");
+        ut_info!("Start.");
 
         let config = Config::default();
 
@@ -101,13 +101,13 @@ mod tests {
         assert!(config.amqp.url.is_none());
         assert!(config.amqp.pool.is_none());
 
-        ut_info!("(test_config_from_default) Success.");
+        ut_info!("Success.");
     }
 
     #[tokio::test]
     async fn test_config_from_env() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_config_from_env) Start.");
+        ut_info!("Start.");
 
         std::env::set_var("DOCKER_PORT_GRPC", "6789");
         std::env::set_var("GIS_HOST_GRPC", "svc-gis");
@@ -135,6 +135,6 @@ mod tests {
         assert_eq!(config.amqp.get_pool_config().max_size, 32);
         assert!(config.amqp.pool.is_some());
 
-        ut_info!("(test_config_from_env) Success.");
+        ut_info!("Success.");
     }
 }

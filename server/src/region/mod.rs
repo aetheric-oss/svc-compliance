@@ -82,7 +82,7 @@ mod tests {
     #[tokio::test]
     async fn test_region_code() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_region_code) Start.");
+        ut_info!("Start.");
 
         let region_impl = RegionImpl::default();
         cfg_if::cfg_if! {
@@ -93,6 +93,6 @@ mod tests {
             }
         }
 
-        ut_info!("(test_region_code) Success.");
+        ut_info!("Success.");
     }
 }

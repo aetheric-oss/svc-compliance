@@ -1,4 +1,4 @@
-![Aetheric Banner](https://github.com/aetheric-oss/.github/blob/main/assets/readme-banner.png)
+![Aetheric Banner](https://github.com/aetheric-oss/.github/raw/main/assets/readme-banner.png)
 
 # svc-compliance Service
 
@@ -101,17 +101,16 @@ The following documents are relevant to this service:
 - [Concept of Operations](./docs/conops.md)
 - [Software Design Document](./docs/sdd.md)
 - [Interface Control Document (ICD)](./docs/icd.md)
-- [Requirements](https://nocodb.arrowair.com/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b)
+- [Requirements](https://nocodb.aetheric.nl/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b)
 
-## :busts_in_silhouette: Arrow DAO
-Learn more about us:
-- [Website](https://www.arrowair.com/)
-- [Arrow Docs](https://www.arrowair.com/docs/intro)
-- [Discord](https://discord.com/invite/arrow)
+
+## :busts_in_silhouette: About Us
+Learn more about us: [Aetheric website](https://www.aetheric.nl)
 
 ## LICENSE Notice
 
-Please note that svc-template is under BUSL license until the Change Date, currently the earlier of two years from the release date. Exceptions to the license may be specified by Arrow Governance via Additional Use Grants, which can, for example, allow svc-template to be deployed for certain production uses. Please reach out to Arrow DAO to request a DAO vote for exceptions to the license, or to move up the Change Date.
+Please note that svc-compliance is under BUSL license until the Change Date, currently the earlier of two years from the release date. Exceptions to the license may be specified by Aetheric Governance via Additional Use Grants, which can, for example, allow svc-compliance to be deployed for certain production uses. Please reach out to Aetheric to request a vote for exceptions to the license, or to move up the Change Date.
+
 
 ## :exclamation: Treatment of `Cargo.lock`
 If you are building a non-end product like a library, include `Cargo.lock` in `.gitignore`.

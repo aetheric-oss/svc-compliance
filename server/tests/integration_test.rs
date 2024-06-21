@@ -1,5 +1,4 @@
-//! Integration Tests
-//!
+/// Integration Tests
 fn get_log_string(function: &str, name: &str) -> String {
     cfg_if::cfg_if! {
         if #[cfg(feature = "us")] {
@@ -10,10 +9,10 @@ fn get_log_string(function: &str, name: &str) -> String {
     }
 
     #[cfg(feature = "stub_server")]
-    return format!("({} MOCK)[{}] {} server.", function, lang, name);
+    return format!("({}) (MOCK)[{}] {} server.", function, lang, name);
 
     #[cfg(not(feature = "stub_server"))]
-    return format!("({})[{}] {} server.", function, lang, name);
+    return format!("({}) [{}] {} server.", function, lang, name);
 }
 
 #[tokio::test]
@@ -36,7 +35,7 @@ async fn test_server_requests_and_logs() {
         let result = imp.is_ready(tonic::Request::new(ReadyRequest {})).await;
         assert!(result.is_ok());
         let result: ReadyResponse = result.unwrap().into_inner();
-        assert_eq!(result.ready, true);
+        assert!(result.ready);
 
         // Search for the expected log message
         let expected = get_log_string("is_ready", name);

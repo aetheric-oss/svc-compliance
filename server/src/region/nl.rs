@@ -11,7 +11,7 @@ use svc_gis_client_grpc::prelude::gis::{Coordinates, ZoneType};
 use tonic::{Request, Response, Status};
 
 //
-// TODO(R4): Refresh intervals for receiving data from external sources
+// TODO(R5): Refresh intervals for receiving data from external sources
 // NOTE: These may be updated to minutes or hours in the future
 //
 // const NL_RESTRICTION_REFRESH_INTERVAL_MS: u64 = 30000; // 30s
@@ -39,7 +39,7 @@ impl RegionInterface for super::RegionImpl {
         region_info!("(submit_flight_plan)[nl] entry.");
 
         //
-        // TODO(R4) implement
+        // TODO(R5) implement
         //
 
         let flight_plan_id = request.flight_plan_id;
@@ -57,7 +57,7 @@ impl RegionInterface for super::RegionImpl {
         region_info!("(request_flight_release)[nl] entry.");
 
         //
-        // TODO(R4) implement
+        // TODO(R5) implement
         //
 
         let flight_plan_id = request.into_inner().flight_plan_id;
@@ -70,7 +70,7 @@ impl RegionInterface for super::RegionImpl {
 
     async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>) {
         //
-        // TODO(R4): This is currently hardcoded. This should be replaced with a call to
+        // TODO(R5): This is currently hardcoded. This should be replaced with a call to
         //  an API.
         //
         let zones: Vec<(&str, Vec<(f64, f64)>)> = vec![
@@ -215,7 +215,7 @@ impl RegionInterface for super::RegionImpl {
 
     async fn acquire_waypoints(&self, waypoints: &mut HashMap<String, Coordinates>) {
         //
-        // TODO(R4): This is currently hardcoded. This should be replaced with a call to an API
+        // TODO(R5): This is currently hardcoded. This should be replaced with a call to an API
         //
 
         // Amsterdam Drone Lab Waypoints

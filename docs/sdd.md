@@ -1,4 +1,4 @@
-![Aetheric Banner](https://github.com/aetheric-oss/.github/blob/main/assets/doc-banner.png)
+![Aetheric Banner](https://github.com/aetheric-oss/.github/raw/main/assets/doc-banner.png)
 
 # Software Design Document (SDD) - `svc-compliance` 
 
@@ -18,7 +18,7 @@ This service is responsible for some or all of the following:
 | Attribute     | Description                                                       |
 | ------------- |-------------------------------------------------------------------|
 | Maintainer(s) | [Aetheric Realm Team](https://github.com/orgs/aetheric-oss/teams/dev-realm) |
-| Stuckee       | A.M. Smith [@ServiceDog](https://github.com/servicedog)           |
+| Stuckee       | A.M. Smith [@amsmith-pro](https://github.com/amsmith-pro)           |
 | Status        | Draft                                                             |
 
 ## :books: Related Documents
@@ -27,7 +27,7 @@ Document | Description
 --- | ---
 [High-Level Concept of Operations (CONOPS)](https://github.com/aetheric-oss/se-services/blob/develop/docs/conops.md) | Overview of Aetheric microservices.
 [High-Level Interface Control Document (ICD)](https://github.com/aetheric-oss/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Aetheric microservices.
-[Requirements - `svc-compliance`](https://nocodb.arrowair.com/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b) | Requirements and user stories for this microservice.
+[Requirements - `svc-compliance`](https://nocodb.aetheric.nl/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b) | Requirements and user stories for this microservice.
 [Concept of Operations - `svc-compliance`](./conops.md) | Defines the motivation and duties of this microservice.
 [Interface Control Document (ICD) - `svc-compliance`](./icd.md) | Defines the inputs and outputs of this microservice.
 
