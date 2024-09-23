@@ -4,17 +4,17 @@
 pub mod macros;
 
 cfg_if::cfg_if! {
-    if #[cfg(feature = "nl")] {
-        pub mod nl;
-    } else {
+    if #[cfg(feature = "us")] {
         pub mod us;
+    } else {
+        pub mod nl;
     }
 }
 
 pub mod utils;
 
 use crate::grpc::server;
-use chrono::{DateTime, Utc};
+use lib_common::time::{DateTime, Utc};
 use server::{FlightPlanRequest, FlightPlanResponse};
 use server::{FlightReleaseRequest, FlightReleaseResponse};
 use std::collections::HashMap;
@@ -81,18 +81,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_region_code() {
-        crate::get_log_handle().await;
-        ut_info!("(test_region_code) Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("Start.");
 
         let region_impl = RegionImpl::default();
         cfg_if::cfg_if! {
-            if #[cfg(feature = "nl")] {
-                assert_eq!(region_impl.region, "nl");
-            } else {
+            if #[cfg(feature = "us")] {
                 assert_eq!(region_impl.region, "us");
+            } else {
+                assert_eq!(region_impl.region, "nl");
             }
         }
 
-        ut_info!("(test_region_code) Success.");
+        ut_info!("Success.");
     }
 }

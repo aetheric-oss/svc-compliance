@@ -6,13 +6,12 @@ use crate::grpc::server::{
 
 use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
-use chrono::{Duration, Utc};
 use std::collections::HashMap;
 use svc_gis_client_grpc::prelude::gis::{Coordinates, ZoneType};
 use tonic::{Request, Response, Status};
 
 //
-// TODO(R4): Refresh intervals for receiving data from external sources
+// TODO(R5): Refresh intervals for receiving data from external sources
 // NOTE: These may be updated to minutes or hours in the future
 //
 // const NL_RESTRICTION_REFRESH_INTERVAL_MS: u64 = 30000; // 30s
@@ -37,10 +36,10 @@ impl RegionInterface for super::RegionImpl {
         &self,
         request: FlightPlanRequest,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        region_info!("(submit_flight_plan)[nl] entry.");
+        region_info!("[nl] entry.");
 
         //
-        // TODO(R4) implement
+        // TODO(R5) implement
         //
 
         let flight_plan_id = request.flight_plan_id;
@@ -55,10 +54,10 @@ impl RegionInterface for super::RegionImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        region_info!("(request_flight_release)[nl] entry.");
+        region_info!("[nl] entry.");
 
         //
-        // TODO(R4) implement
+        // TODO(R5) implement
         //
 
         let flight_plan_id = request.into_inner().flight_plan_id;
@@ -71,99 +70,139 @@ impl RegionInterface for super::RegionImpl {
 
     async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>) {
         //
-        // TODO(R4): This is currently hardcoded. This should be replaced with a call to
+        // TODO(R5): This is currently hardcoded. This should be replaced with a call to
         //  an API.
         //
-        let Some(delta) = Duration::try_hours(1) else {
-            region_error!("Failed to create duration");
-            return;
-        };
-
-        let mut from_remote: HashMap<String, RestrictionDetails> = HashMap::new();
-
-        let vertices = vec![
-            (4.7091866, 52.3827247),
-            (4.6507947, 52.3294647),
-            (4.7560834, 52.2572307),
-            (4.8234058, 52.3214912),
-            (4.7091866, 52.3827247),
+        let zones: Vec<(&str, Vec<(f64, f64)>)> = vec![
+            (
+                "schiphol",
+                vec![
+                    (4.7091866, 52.3827247),
+                    (4.6507947, 52.3294647),
+                    (4.7560834, 52.2572307),
+                    (4.8234058, 52.3214912),
+                    (4.7091866, 52.3827247),
+                ],
+            ),
+            (
+                "hoorn",
+                vec![
+                    (5.0232724, 52.6317085),
+                    (5.1069102, 52.6347298),
+                    (5.1036471, 52.6459798),
+                    (5.1227104, 52.6501458),
+                    (5.0948883, 52.6829387),
+                    (5.0306572, 52.6710736),
+                    (5.0358094, 52.6534782),
+                    (5.0102200, 52.6393135),
+                    (5.0229289, 52.6317085),
+                    (5.0232724, 52.6317085),
+                ],
+            ),
+            (
+                "enkuizen",
+                vec![
+                    (5.2790303, 52.6962570),
+                    (5.2867586, 52.6928238),
+                    (5.3121763, 52.7067632),
+                    (5.2864152, 52.7253768),
+                    (5.2604823, 52.7204902),
+                    (5.2611692, 52.7089473),
+                    (5.2790303, 52.6962570),
+                ],
+            ),
+            (
+                "paleis",
+                vec![
+                    (4.8822724, 52.3688393),
+                    (4.8832170, 52.3781666),
+                    (4.9007345, 52.3777998),
+                    (4.9001335, 52.3680532),
+                    (4.8822724, 52.3688393),
+                ],
+            ),
+            (
+                "lelystad",
+                vec![
+                    (5.4339886, 52.5337670),
+                    (5.4030752, 52.4942783),
+                    (5.5226069, 52.4806893),
+                    (5.5325679, 52.5329316),
+                    (5.4339886, 52.5337670),
+                ],
+            ),
+            (
+                "almere",
+                vec![
+                    (5.1146438, 52.3818865),
+                    (5.1273526, 52.3447783),
+                    (5.1541442, 52.3240093),
+                    (5.2294815, 52.3269469),
+                    (5.3468376, 52.4038851),
+                    (5.2664628, 52.4350834),
+                    (5.2279928, 52.4262914),
+                    (5.1551747, 52.3672147),
+                    (5.1359397, 52.3869157),
+                    (5.1146438, 52.3818865),
+                ],
+            ),
+            (
+                "volendam",
+                vec![
+                    (5.0379751, 52.4928151),
+                    (5.0702624, 52.4842438),
+                    (5.0912148, 52.5071317),
+                    (5.0742124, 52.5225926),
+                    (5.0465621, 52.5207125),
+                    (5.0379751, 52.4928151),
+                ],
+            ),
+            (
+                "monnickendam",
+                vec![
+                    (5.0302965, 52.4649000),
+                    (5.0241138, 52.4491049),
+                    (5.0486728, 52.4423563),
+                    (5.0503902, 52.4547018),
+                    (5.0423184, 52.4629128),
+                    (5.0302965, 52.4649000),
+                ],
+            ),
+            (
+                "marken",
+                vec![
+                    (5.0982680, 52.4568985),
+                    (5.1042360, 52.4545449),
+                    (5.1099464, 52.4564540),
+                    (5.1135959, 52.4619715),
+                    (5.1092594, 52.4657889),
+                    (5.1006295, 52.4612655),
+                    (5.0982680, 52.4568985),
+                ],
+            ),
         ];
 
-        from_remote.insert(
-            "ARROW-NL-NOFLY-SCHIPHOL".to_string(),
-            RestrictionDetails {
-                vertices: vertices
-                    .into_iter()
-                    .map(|(x, y)| Coordinates {
-                        latitude: y,
-                        longitude: x,
-                    })
-                    .collect(),
-                timestamp_end: None,
-                timestamp_start: None,
-                altitude_meters_min: 0.0,
-                altitude_meters_max: 2000.0,
-                zone_type: ZoneType::Restriction,
-            },
-        );
+        let from_remote = zones
+            .into_iter()
+            .map(|(zone_name, zone_vertices)| {
+                let data = RestrictionDetails {
+                    vertices: zone_vertices
+                        .into_iter()
+                        .map(|(x, y)| Coordinates {
+                            latitude: y,
+                            longitude: x,
+                        })
+                        .collect(),
+                    timestamp_start: None,
+                    timestamp_end: None,
+                    altitude_meters_min: 0.0,
+                    altitude_meters_max: 1000.0,
+                    zone_type: ZoneType::Restriction,
+                };
 
-        let vertices = vec![
-            (4.8822724, 52.3688393),
-            (4.8832170, 52.3781666),
-            (4.9007345, 52.3777998),
-            (4.9001335, 52.3680532),
-            (4.8822724, 52.3688393),
-        ];
-
-        from_remote.insert(
-            "ARROW-NL-TFR-PALEIS".to_string(),
-            RestrictionDetails {
-                vertices: vertices
-                    .into_iter()
-                    .map(|(longitude, latitude)| Coordinates {
-                        latitude,
-                        longitude,
-                    })
-                    .collect(),
-                timestamp_end: Some(Utc::now() + delta),
-                timestamp_start: Some(Utc::now()),
-                altitude_meters_min: 0.0,
-                altitude_meters_max: 2000.0,
-                zone_type: ZoneType::Restriction,
-            },
-        );
-
-        // HOORN
-        let vertices = vec![
-            (5.0232724, 52.6317085),
-            (5.1069102, 52.6347298),
-            (5.1036471, 52.6459798),
-            (5.1227104, 52.6501458),
-            (5.0948883, 52.6829387),
-            (5.0306572, 52.6710736),
-            (5.0358094, 52.6534782),
-            (5.0102200, 52.6393135),
-            (5.0229289, 52.6317085),
-            (5.0232724, 52.6317085),
-        ];
-
-        from_remote.insert(
-            "ARROW-NL-NOFLY-HOORN".to_string(),
-            RestrictionDetails {
-                vertices: vertices
-                    .into_iter()
-                    .map(|(longitude, latitude)| Coordinates {
-                        latitude,
-                        longitude,
-                    })
-                    .collect(),
-                timestamp_end: None,
-                timestamp_start: None,
-                altitude_meters_min: 0.0,
-                altitude_meters_max: 2000.0,
-                zone_type: ZoneType::Restriction,
-            },
-        );
+                (format!("ARROW-NL-NOFLY-{}", zone_name), data)
+            })
+            .collect::<HashMap<String, RestrictionDetails>>();
 
         //
         // END HARDCODE
@@ -176,7 +215,7 @@ impl RegionInterface for super::RegionImpl {
 
     async fn acquire_waypoints(&self, waypoints: &mut HashMap<String, Coordinates>) {
         //
-        // TODO(R4): This is currently hardcoded. This should be replaced with a call to an API
+        // TODO(R5): This is currently hardcoded. This should be replaced with a call to an API
         //
 
         // Amsterdam Drone Lab Waypoints
@@ -294,19 +333,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_region_code() {
-        crate::get_log_handle().await;
-        ut_info!("(test_region_code)[nl] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[nl] Start.");
 
         let region_impl = RegionImpl::default();
         assert_eq!(region_impl.region, "nl");
 
-        ut_info!("(test_region_code)[nl] Success.");
+        ut_info!("[nl] Success.");
     }
 
     #[tokio::test]
     async fn test_submit_flight_plan() {
-        crate::get_log_handle().await;
-        ut_info!("(test_submit_flight_plan)[nl] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[nl] Start.");
 
         let region = RegionImpl::default();
         let result = region.submit_flight_plan(FlightPlanRequest {
@@ -316,16 +355,16 @@ mod tests {
 
         assert!(result.is_ok());
         let result: FlightPlanResponse = result.unwrap().into_inner();
-        ut_debug!("(test_submit_flight_plan)[nl] Result: {:?}", result);
+        ut_debug!("[nl] Result: {:?}", result);
         assert_eq!(result.submitted, true);
 
-        ut_info!("(test_submit_flight_plan)[nl] Success.");
+        ut_info!("[nl] Success.");
     }
 
     #[tokio::test]
     async fn test_request_flight_release() {
-        crate::get_log_handle().await;
-        ut_info!("(test_request_flight_release)[nl] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[nl] Start.");
 
         let region = RegionImpl::default();
         let result = region.request_flight_release(tonic::Request::new(FlightReleaseRequest {
@@ -335,36 +374,36 @@ mod tests {
 
         assert!(result.is_ok());
         let result: FlightReleaseResponse = result.unwrap().into_inner();
-        ut_debug!("(test_request_flight_release)[nl] Result: {:?}", result);
+        ut_debug!("[nl] Result: {:?}", result);
         assert_eq!(result.released, true);
 
-        ut_info!("(test_request_flight_release)[nl] Success.");
+        ut_info!("[nl] Success.");
     }
 
     #[tokio::test]
     async fn test_acquire_restrictions() {
-        crate::get_log_handle().await;
-        ut_info!("(test_acquire_restrictions)[nl] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[nl] Start.");
 
         let region = RegionImpl::default();
         let mut cache = HashMap::<String, RestrictionDetails>::new();
         region.acquire_restrictions(&mut cache).await;
-        ut_debug!("(test_acquire_restrictions)[nl] Cache content: {:?}", cache);
+        ut_debug!("[nl] Cache content: {:?}", cache);
         assert!(cache.keys().len() > 0);
 
-        ut_info!("(test_acquire_restrictions)[nl] Success.");
+        ut_info!("[nl] Success.");
     }
 
     #[tokio::test]
     async fn test_refresh_waypoints() {
-        crate::get_log_handle().await;
-        ut_info!("(test_refresh_waypoints)[nl] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[nl] Start.");
 
         let region = RegionImpl::default();
         let mut cache = HashMap::<String, Coordinates>::new();
         region.acquire_waypoints(&mut cache).await;
         assert!(cache.keys().len() > 0);
 
-        ut_info!("(test_refresh_waypoints)[nl] Success.");
+        ut_info!("[nl] Success.");
     }
 }

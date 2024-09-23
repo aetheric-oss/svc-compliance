@@ -6,7 +6,7 @@ use crate::grpc::server::{
 
 use crate::region::RegionInterface;
 use crate::region::RestrictionDetails;
-use chrono::{Duration, Utc};
+use lib_common::time::{Duration, Utc};
 use std::collections::HashMap;
 use svc_gis_client_grpc::prelude::gis::{Coordinates, ZoneType};
 use tonic::{Request, Response, Status};
@@ -30,8 +30,8 @@ impl RegionInterface for super::RegionImpl {
         &self,
         request: FlightPlanRequest,
     ) -> Result<Response<FlightPlanResponse>, Status> {
-        region_info!("(submit_flight_plan)[us] entry.");
-        // TODO(R4) implement
+        region_info!("[us] entry.");
+        // TODO(R5) implement
         let flight_plan_id = request.flight_plan_id;
         Ok(Response::new(FlightPlanResponse {
             flight_plan_id,
@@ -44,8 +44,8 @@ impl RegionInterface for super::RegionImpl {
         &self,
         request: Request<FlightReleaseRequest>,
     ) -> Result<Response<FlightReleaseResponse>, Status> {
-        region_info!("(request_flight_release)[us] entry.");
-        // TODO(R4) implement
+        region_info!("[us] entry.");
+        // TODO(R5) implement
         let flight_plan_id = request.into_inner().flight_plan_id;
         Ok(Response::new(FlightReleaseResponse {
             flight_plan_id,
@@ -56,7 +56,7 @@ impl RegionInterface for super::RegionImpl {
 
     async fn acquire_restrictions(&self, restrictions: &mut HashMap<String, RestrictionDetails>) {
         //
-        // TODO(R4): This is currently hardcoded. This should be replaced with a call to
+        // TODO(R5): This is currently hardcoded. This should be replaced with a call to
         //  an API.
         //
         let mut from_remote: HashMap<String, RestrictionDetails> = HashMap::new();
@@ -70,7 +70,7 @@ impl RegionInterface for super::RegionImpl {
         ];
 
         let Some(delta) = Duration::try_hours(1) else {
-            region_error!("Failed to create duration");
+            region_error!("Failed to create duration.");
             return;
         };
 
@@ -136,7 +136,7 @@ impl RegionInterface for super::RegionImpl {
 
     async fn acquire_waypoints(&self, waypoints: &mut HashMap<String, Coordinates>) {
         //
-        // TODO(R4): This is currently hardcoded. This should be replaced with a call to an API
+        // TODO(R5): This is currently hardcoded. This should be replaced with a call to an API
         //
 
         // West TX
@@ -179,19 +179,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_region_code() {
-        crate::get_log_handle().await;
-        ut_info!("(test_region_code)[us] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[us] Start.");
 
         let region_impl = RegionImpl::default();
         assert_eq!(region_impl.region, "us");
 
-        ut_info!("(test_region_code)[us] Success.");
+        ut_info!("[us] Success.");
     }
 
     #[tokio::test]
     async fn test_submit_flight_plan() {
-        crate::get_log_handle().await;
-        ut_info!("(test_submit_flight_plan)[us] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[us] Start.");
 
         let region = RegionImpl::default();
         let result = region.submit_flight_plan(FlightPlanRequest {
@@ -201,16 +201,16 @@ mod tests {
 
         assert!(result.is_ok());
         let result: FlightPlanResponse = result.unwrap().into_inner();
-        ut_debug!("(test_submit_flight_plan)[us] Result: {:?}", result);
+        ut_debug!("[us] Result: {:?}", result);
         assert_eq!(result.submitted, true);
 
-        ut_info!("(test_submit_flight_plan)[us] Success.");
+        ut_info!("[us] Success.");
     }
 
     #[tokio::test]
     async fn test_request_flight_release() {
-        crate::get_log_handle().await;
-        ut_info!("(test_request_flight_release)[us] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[us] Start.");
 
         let region = RegionImpl::default();
         let result = region.request_flight_release(tonic::Request::new(FlightReleaseRequest {
@@ -220,36 +220,36 @@ mod tests {
 
         assert!(result.is_ok());
         let result: FlightReleaseResponse = result.unwrap().into_inner();
-        ut_debug!("(test_request_flight_release)[us] Result: {:?}", result);
+        ut_debug!("[us] Result: {:?}", result);
         assert_eq!(result.released, true);
 
-        ut_info!("(test_request_flight_release)[us] Success.");
+        ut_info!("[us] Success.");
     }
 
     #[tokio::test]
     async fn test_acquire_restrictions() {
-        crate::get_log_handle().await;
-        ut_info!("(test_acquire_restrictions)[us] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[us] Start.");
 
         let region = RegionImpl::default();
         let mut cache = HashMap::<String, RestrictionDetails>::new();
         region.acquire_restrictions(&mut cache).await;
-        ut_debug!("(test_acquire_restrictions)[us] Cache content: {:?}", cache);
+        ut_debug!("[us] Cache content: {:?}", cache);
         assert!(cache.keys().len() > 0);
 
-        ut_info!("(test_acquire_restrictions)[us] Success.");
+        ut_info!("[us] Success.");
     }
 
     #[tokio::test]
     async fn test_refresh_waypoints() {
-        crate::get_log_handle().await;
-        ut_info!("(test_refresh_waypoints)[us] Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("[us] Start.");
 
         let region = RegionImpl::default();
         let mut cache = HashMap::<String, Coordinates>::new();
         region.acquire_waypoints(&mut cache).await;
         assert!(cache.keys().len() > 0);
 
-        ut_info!("(test_refresh_waypoints)[us] Success.");
+        ut_info!("[us] Success.");
     }
 }

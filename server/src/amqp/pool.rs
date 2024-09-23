@@ -18,36 +18,29 @@ impl AMQPPool {
     /// Create a new AMQP pool
     pub fn new(config: crate::config::Config) -> Result<Self, AMQPError> {
         let cfg: deadpool_lapin::Config = config.amqp.clone();
-        let Some(details) = cfg.url.clone() else {
-            amqp_error!("(new) No connection address found.");
-            amqp_debug!("(new) Available config: {:?}", &config.amqp);
-            return Err(AMQPError::MissingConfiguration);
-        };
+        let details = cfg.url.clone().ok_or_else(|| {
+            amqp_error!("No connection address found.");
+            amqp_debug!("Available config: {:?}", &config.amqp);
+            AMQPError::MissingConfiguration
+        })?;
 
-        amqp_info!("(new) Creating pool at [{:?}]...", details);
-        match cfg.create_pool(Some(Runtime::Tokio1)) {
-            Ok(pool) => {
-                amqp_info!("(new) Pool created.");
-                Ok(AMQPPool { pool })
-            }
-            Err(e) => {
-                amqp_error!("(new) Could not create pool: {}", e);
-                Err(AMQPError::CouldNotConnect)
-            }
-        }
+        amqp_info!("Creating pool at [{:?}]...", details);
+        let pool = cfg.create_pool(Some(Runtime::Tokio1)).map_err(|e| {
+            amqp_error!("Could not create pool: {}", e);
+            AMQPError::CouldNotConnect
+        })?;
+
+        Ok(AMQPPool { pool })
     }
 
     /// Get a connection from the pool
     #[cfg(not(tarpaulin_include))]
-    //
+    // no_coverage: (Rnever) not unit testable, only integration tests
     pub async fn get_connection(&self) -> Result<Object, AMQPError> {
-        match self.pool.get().await {
-            Ok(connection) => Ok(connection),
-            Err(e) => {
-                amqp_error!("(get_connection) Could not connect to deadpool: {}", e);
-                Err(AMQPError::CouldNotConnect)
-            }
-        }
+        self.pool.get().await.map_err(|e| {
+            amqp_error!("Could not connect to deadpool: {}", e);
+            AMQPError::CouldNotConnect
+        })
     }
 }
 
@@ -56,28 +49,16 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    #[cfg(feature = "stub_backends")]
-    async fn test_amqp_pool_new_failure() {
-        crate::get_log_handle().await;
-        ut_info!("(test_amqp_pool_new_failure) Start.");
-
-        let config = crate::config::Config::default();
-        let result = AMQPPool::new(config.clone());
-        assert!(result.is_err());
-
-        ut_info!("(test_amqp_pool_new_failure) Success.");
-    }
-
-    #[tokio::test]
-    #[cfg(not(feature = "stub_backends"))]
     async fn test_amqp_pool_new() {
-        crate::get_log_handle().await;
-        ut_info!("(test_amqp_pool_new) Start.");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("Start.");
 
-        let config = crate::config::Config::default();
-        let result = AMQPPool::new(config.clone());
-        assert!(result.is_ok());
+        let mut config = crate::config::Config::default();
+        let error = AMQPPool::new(config.clone()).unwrap_err();
+        assert_eq!(error, AMQPError::MissingConfiguration);
 
-        ut_info!("(test_amqp_pool_new) Success.");
+        config.amqp.url = Some("amqp://localhost:5672".to_string());
+        let _ = AMQPPool::new(config.clone()).unwrap();
+        ut_info!("Success.");
     }
 }
