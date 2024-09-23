@@ -1,3 +1,30 @@
+## [Release 0.3.0](https://github.com/aetheric-oss/svc-compliance/releases/tag/v0.3.0)
+
+### ✨ Features
+
+- synchronize with svc-gis ([`a46d604`](https://github.com/aetheric-oss/svc-compliance/commit/a46d604ba2be56a7b5cfc91e251b90332afd9678))
+- add more hardcoded no-fly zones, default to nl ([`148966b`](https://github.com/aetheric-oss/svc-compliance/commit/148966b4902dd8f4fc26815cda89b96abadb0df7))
+
+### 🐛 Fixes
+
+- add back own post_release workflow ([`07e9ad0`](https://github.com/aetheric-oss/svc-compliance/commit/07e9ad02c15748811e3590507c38620feccbd077))
+- post release build arg ([`810442e`](https://github.com/aetheric-oss/svc-compliance/commit/810442e6018d48e9b82ee94fc1728a3099e63962))
+- unwanted gis mock client ([`a099909`](https://github.com/aetheric-oss/svc-compliance/commit/a0999095bf63f0c4f8d9bebcdf309b22838a85b0))
+- update git organization ([`2d17a89`](https://github.com/aetheric-oss/svc-compliance/commit/2d17a89b27d04e1dc8b9bb5cf4916a872bc82189))
+
+### 🛠 Maintenance
+
+- terraform provisioned file changes ([`276358f`](https://github.com/aetheric-oss/svc-compliance/commit/276358f0546243e3ba5bc80d8b34a737faa12eca))
+- update cargo dependencies ([`49abb27`](https://github.com/aetheric-oss/svc-compliance/commit/49abb27250eb148ad573a83e696ccebcf0bb9690))
+- fix excessive info logging ([`b739c85`](https://github.com/aetheric-oss/svc-compliance/commit/b739c85ed2d9c792e7a6a36e104d7ee3cfca43da))
+- reviewer comments ([`9dd1eb0`](https://github.com/aetheric-oss/svc-compliance/commit/9dd1eb08303832781124fda2641f9ae229812efe))
+- terraform provisioned file changes ([`f0914ef`](https://github.com/aetheric-oss/svc-compliance/commit/f0914efc3a96b45eb4942c4b7b2f663e841ba702))
+- tofu provisioned file changes ([`133f1dd`](https://github.com/aetheric-oss/svc-compliance/commit/133f1dd773c5ab94c4c2e9f31ad5c2b319bed630))
+- update old references ([`d8f2e35`](https://github.com/aetheric-oss/svc-compliance/commit/d8f2e35a70d0d0978533ae339ed441c78d271d4b))
+- improve unit testing and refactor ([`cc8edd8`](https://github.com/aetheric-oss/svc-compliance/commit/cc8edd82f4b2ff5629d867ff28cdea40a28442a3))
+- final r4 fixes ([`4d25f04`](https://github.com/aetheric-oss/svc-compliance/commit/4d25f04aa62ee0aec0544f411caa7d0a13f327aa))
+- reviewer comments 1 ([`4be8c75`](https://github.com/aetheric-oss/svc-compliance/commit/4be8c752d2ab874a896d5eec6405e687c3f44d56))
+
 ## [Release 0.2.0](https://github.com/Arrow-air/svc-compliance/releases/tag/v0.2.0)
 
 ### ✨ Features
